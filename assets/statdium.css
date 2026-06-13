@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0A0A0F;color:#F0F0F5;font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{text-decoration:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#0A0A0F}
+::-webkit-scrollbar-thumb{background:#2A2A38;border-radius:4px}
+
+/* ── AURORA background ── */
+body::before{
+  content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(ellipse at 20% 20%,rgba(0,229,160,0.04) 0%,transparent 50%),
+             radial-gradient(ellipse at 80% 80%,rgba(123,97,255,0.04) 0%,transparent 50%),
+             radial-gradient(ellipse at 50% 50%,rgba(255,107,53,0.02) 0%,transparent 60%);
+  pointer-events:none;z-index:0;animation:auroraShift 20s ease-in-out infinite alternate
+}
+@keyframes auroraShift{
+  0%{transform:translate(0,0) rotate(0deg)}
+  100%{transform:translate(-3%,2%) rotate(1deg)}
+}
+
+/* ── SHINY text ── */
+@keyframes shineSweep{
+  0%{background-position:-200% center}
+  100%{background-position:200% center}
+}
+.shiny-text{
+  background:linear-gradient(90deg,#00E5A0 0%,#00E5A0 38%,#ffffff 50%,#00E5A0 62%,#00E5A0 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shineSweep 3s linear infinite
+}
+
+/* ── NAVBAR ── */
+.statdium-navbar{
+  position:sticky;top:0;z-index:1000;
+  background:rgba(10,10,15,0.8);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(255,255,255,0.06)
+}
+
+/* ── NAV LINKS ── */
+.nav-link{
+  color:#8A8A9A;padding:7px 14px;border-radius:8px;
+  font-size:13px;font-weight:500;
+  transition:all 0.2s ease;white-space:nowrap;display:inline-block
+}
+.nav-link:hover{color:#F0F0F5;background:rgba(255,255,255,0.07)}
+.nav-link.active{
+  color:#00E5A0;background:rgba(0,229,160,0.1);
+  box-shadow:0 0 0 1px rgba(0,229,160,0.2)
+}
+
+/* ── GLOW CARDS ── */
+.glow-card{
+  background:rgba(22,22,26,0.9);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;
+  transition:all 0.25s ease;
+  position:relative;overflow:hidden;
+  backdrop-filter:blur(8px)
+}
+.glow-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(0,229,160,0.06) 0%,transparent 60%);
+  opacity:0;transition:opacity 0.3s ease;pointer-events:none;border-radius:14px
+}
+.glow-card:hover::before{opacity:1}
+.glow-card:hover{
+  border-color:rgba(0,229,160,0.2);
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),0 0 0 1px rgba(0,229,160,0.08)
+}
+
+/* ── MATCH CARD ── */
+.match-card{
+  background:rgba(22,22,26,0.9);border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;padding:16px;margin-bottom:10px;
+  transition:all 0.2s ease;cursor:default;position:relative;overflow:hidden
+}
+.match-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,160,0.3),transparent);
+  opacity:0;transition:opacity 0.3s ease
+}
+.match-card:hover::after{opacity:1}
+.match-card:hover{border-color:rgba(0,229,160,0.15);transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,0,0,0.3)}
+
+/* ── LIVE GLOW ── */
+@keyframes liveGlow{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}
+  50%{box-shadow:0 0 0 4px rgba(255,59,48,0.25),0 0 24px rgba(255,59,48,0.12)}
+}
+.live-glow-card{animation:liveGlow 2s ease-in-out infinite}
+
+@keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.6)}}
+.live-dot{display:inline-block;width:7px;height:7px;background:#FF3B30;border-radius:50%;animation:liveDot 1.2s ease-in-out infinite;margin-right:5px;vertical-align:middle}
+
+/* ── TICKER ── */
+.ticker-wrap{
+  overflow:hidden;
+  background:linear-gradient(90deg,#0A0A0F,rgba(22,22,26,0.95) 8%,rgba(22,22,26,0.95) 92%,#0A0A0F);
+  border-bottom:1px solid rgba(255,255,255,0.06);height:36px;display:flex;align-items:center;position:relative
+}
+.ticker-label{
+  position:absolute;left:0;z-index:2;
+  background:#00E5A0;color:#000;font-size:10px;font-weight:800;
+  padding:0 12px;height:100%;display:flex;align-items:center;
+  letter-spacing:0.1em;white-space:nowrap
+}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-track{
+  display:flex;align-items:center;white-space:nowrap;
+  animation:tickerScroll 50s linear infinite;padding-left:90px;will-change:transform
+}
+.ticker-track:hover{animation-play-state:paused}
+.ticker-item{font-size:12px;color:#9A9AAA;padding:0 28px;border-right:1px solid rgba(255,255,255,0.07)}
+.ticker-goal{color:#00E5A0;font-weight:700}
+.ticker-score{color:#F0F0F5;font-weight:700}
+
+/* ── STAT PILL ── */
+.stat-pill{
+  background:rgba(22,22,26,0.9);border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;padding:12px 16px;text-align:center;min-width:80px;
+  transition:all 0.2s ease
+}
+.stat-pill:hover{border-color:rgba(0,229,160,0.25);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,229,160,0.08)}
+.stat-pill-value{font-size:22px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat-pill-label{font-size:10px;color:#8A8A9A;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px}
+
+/* ── SECTION HEADER ── */
+.section-hdr{display:flex;align-items:center;margin-bottom:18px}
+.section-hdr-bar{width:4px;height:28px;border-radius:2px;margin-right:12px;flex-shrink:0}
+.section-hdr-title{font-size:18px;font-weight:700;color:#F0F0F5}
+.section-hdr-sub{font-size:12px;color:#8A8A9A;margin-top:2px}
+
+/* ── STANDINGS ── */
+.standings-row{display:flex;align-items:center;padding:8px 12px;border-radius:6px;margin-bottom:3px}
+.standings-row.highlight{background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.15)}
+
+/* ── QUAL BAR ── */
+.qual-bar-wrap{background:rgba(30,30,36,0.9);border-radius:4px;height:6px;overflow:hidden;margin-top:3px}
+.qual-bar-fill{height:100%;border-radius:4px;transition:width 0.9s cubic-bezier(0.22,1,0.36,1)}
+
+/* ── TIMELINE ── */
+.timeline-match{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  background:rgba(22,22,26,0.9);border:1px solid rgba(255,255,255,0.06);
+  border-radius:8px;margin-bottom:5px;font-size:12px;transition:all 0.15s ease
+}
+.timeline-match:hover{border-color:rgba(0,229,160,0.2);background:rgba(30,30,36,0.9)}
+
+/* ── CHAMPION WALL ── */
+.champions-grid{display:flex;flex-wrap:wrap;gap:8px}
+.champion-pill{
+  background:rgba(22,22,26,0.9);border:1px solid rgba(255,255,255,0.07);
+  border-radius:8px;padding:8px 12px;font-size:12px;transition:all 0.2s ease;white-space:nowrap;text-align:center
+}
+.champion-pill:hover{border-color:rgba(255,215,0,0.4);background:rgba(255,215,0,0.05);transform:translateY(-2px);box-shadow:0 4px 16px rgba(255,215,0,0.08)}
+.champ-year{font-size:10px;color:#8A8A9A;display:block;margin-top:2px}
+.champ-team{font-weight:700;color:#FFD700}
+
+/* ── DEATH BADGE ── */
+@keyframes deathPulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.death-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,69,58,0.12);border:1px solid rgba(255,69,58,0.3);
+  border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;color:#FF453A;
+  animation:deathPulse 2s ease-in-out infinite
+}
+
+/* ── TYPEWRITER ── */
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+.typewriter-cursor{display:inline-block;width:2px;height:0.85em;background:#00E5A0;margin-left:2px;vertical-align:middle;animation:cursorBlink 0.9s step-start infinite}
+
+/* ── BLUR-IN transition ── */
+@keyframes blurIn{from{opacity:0;filter:blur(6px);transform:translateY(5px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+.page-blur-in{animation:blurIn 0.3s cubic-bezier(0.22,1,0.36,1) both}
+
+/* ── TILT CARD (JS applied) ── */
+.tilt-card{will-change:transform;transition:box-shadow 0.2s ease}
+
+/* ── PARTICLE CANVAS ── */
+#particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.4}
+
+/* ── Z-INDEX for page content ── */
+#page-content{position:relative;z-index:1}
+
+/* ── NUMBER COUNTUP ── */
+.countup-num{display:inline-block;font-variant-numeric:tabular-nums}
+
+/* ── PLOTLY OVERRIDES ── */
+.js-plotly-plot .plotly .modebar{background:transparent!important}
+.js-plotly-plot .plotly .modebar-btn path{fill:#8A8A9A!important}
+
+/* ── DROPDOWN dark ── */
+.Select-control,.Select-menu-outer{background-color:#16161A!important;border-color:#2A2A38!important}
+.Select-value-label,.Select-placeholder{color:#F0F0F5!important}
+.Select-option{background-color:#16161A!important;color:#F0F0F5!important}
+.Select-option:hover,.VirtualizedSelectFocusedOption{background-color:#1E1E26!important}
+.Select-arrow{border-top-color:#8A8A9A!important}
+
+/* ── SLIDER ── */
+.rc-slider-rail{background-color:#2A2A38!important}
+.rc-slider-track{background-color:#00E5A0!important}
+.rc-slider-handle{border-color:#00E5A0!important;background-color:#00E5A0!important}
+
+/* ── BUTTON ── */
+button{cursor:pointer}
+button:hover{opacity:0.88;transform:translateY(-1px);transition:all 0.15s ease}
+
+@media(max-width:768px){.hide-mobile{display:none!important}.ticker-track{animation-duration:30s}}

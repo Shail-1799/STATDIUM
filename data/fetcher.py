@@ -64,23 +64,57 @@ FIFA_RANKINGS = {
 
 # ── Flag emoji ─────────────────────────────────────────────────────────────
 FLAG_MAP = {
-    "Argentina": "🇦🇷", "Australia": "🇦🇺", "Austria": "🇦🇹",
-    "Belgium": "🇧🇪",   "Bosnia & Herzegovina": "🇧🇦", "Brazil": "🇧🇷",
-    "Canada": "🇨🇦",    "Cape Verde": "🇨🇻", "Colombia": "🇨🇴",
-    "Croatia": "🇭🇷",   "Curaçao": "🇨🇼",   "Czech Republic": "🇨🇿",
-    "DR Congo": "🇨🇩",  "Ecuador": "🇪🇨",   "Egypt": "🇪🇬",
-    "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿","France": "🇫🇷",    "Germany": "🇩🇪",
-    "Ghana": "🇬🇭",     "Haiti": "🇭🇹",     "Iran": "🇮🇷",
-    "Iraq": "🇮🇶",      "Italy": "🇮🇹",     "Ivory Coast": "🇨🇮",
-    "Jamaica": "🇯🇲",   "Japan": "🇯🇵",     "Jordan": "🇯🇴",
-    "Mexico": "🇲🇽",    "Morocco": "🇲🇦",   "Netherlands": "🇳🇱",
-    "New Zealand": "🇳🇿", "Norway": "🇳🇴",  "Panama": "🇵🇦",
-    "Paraguay": "🇵🇾",  "Portugal": "🇵🇹",  "Qatar": "🇶🇦",
-    "Saudi Arabia": "🇸🇦", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Senegal": "🇸🇳",
-    "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
-    "Sweden": "🇸🇪",   "Switzerland": "🇨🇭", "Tunisia": "🇹🇳",
-    "Turkey": "🇹🇷",   "USA": "🇺🇸",        "Ukraine": "🇺🇦",
-    "Uruguay": "🇺🇾",  "Uzbekistan": "🇺🇿",  "Algeria": "🇩🇿",
+    "Argentina": "🇦🇷",
+    "Australia": "🇦🇺",
+    "Austria": "🇦🇹",
+    "Belgium": "🇧🇪",
+    "Bosnia & Herzegovina": "🇧🇦",
+    "Brazil": "🇧🇷",
+    "Canada": "🇨🇦",
+    "Cape Verde": "🇨🇻",
+    "Colombia": "🇨🇴",
+    "Croatia": "🇭🇷",
+    "Curaçao": "🇨🇼",
+    "Czech Republic": "🇨🇿",
+    "DR Congo": "🇨🇩",
+    "Ecuador": "🇪🇨",
+    "Egypt": "🇪🇬",
+    "England": "GB-ENG",
+    "France": "🇫🇷",
+    "Germany": "🇩🇪",
+    "Ghana": "🇬🇭",
+    "Haiti": "🇭🇹",
+    "Iran": "🇮🇷",
+    "Iraq": "🇮🇶",
+    "Italy": "🇮🇹",
+    "Ivory Coast": "🇨🇮",
+    "Jamaica": "🇯🇲",
+    "Japan": "🇯🇵",
+    "Jordan": "🇯🇴",
+    "Mexico": "🇲🇽",
+    "Morocco": "🇲🇦",
+    "Netherlands": "🇳🇱",
+    "New Zealand": "🇳🇿",
+    "Norway": "🇳🇴",
+    "Panama": "🇵🇦",
+    "Paraguay": "🇵🇾",
+    "Portugal": "🇵🇹",
+    "Qatar": "🇶🇦",
+    "Saudi Arabia": "🇸🇦",
+    "Scotland": "GB-SCT",
+    "Senegal": "🇸🇳",
+    "South Africa": "🇿🇦",
+    "South Korea": "🇰🇷",
+    "Spain": "🇪🇸",
+    "Sweden": "🇸🇪",
+    "Switzerland": "🇨🇭",
+    "Tunisia": "🇹🇳",
+    "Turkey": "🇹🇷",
+    "USA": "🇺🇸",
+    "Ukraine": "🇺🇦",
+    "Uruguay": "🇺🇾",
+    "Uzbekistan": "🇺🇿",
+    "Algeria": "🇩🇿",
 }
 
 def get_flag(name):
@@ -247,7 +281,7 @@ def merge_fd_into_matches(matches, fd_matches):
 # ── Main refresh ───────────────────────────────────────────────────────────
 def refresh_data():
     global _cache
-    print(f"[STATDIUM] Refreshing at {datetime.now().strftime('%H:%M:%S')}...")
+    print(f"[⚽ STATDIUM] Refreshing at {datetime.now().strftime('%H:%M:%S')}...")
     raw = fetch_openfootball()
     matches, groups = parse_openfootball(raw)
     fd_matches = fetch_fd_matches()
@@ -260,7 +294,7 @@ def refresh_data():
         _cache["scorers"]      = scorers
         _cache["last_updated"] = datetime.now(timezone.utc).isoformat()
         _cache["source"]       = "openfootball" + ("+fd" if fd_matches else "")
-    print(f"[STATDIUM] Done — {len(matches)} matches, source={_cache['source']}")
+    print(f"[⚽ STATDIUM] Done — {len(matches)} matches, source={_cache['source']}")
 
 
 def get_cache():

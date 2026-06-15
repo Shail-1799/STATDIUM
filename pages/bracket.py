@@ -34,14 +34,48 @@ def layout():
                         "marginTop":"22px","letterSpacing":"0.02em",
                     }),
                 ], style={"flex":"1","minWidth":"160px"}),
-            ], style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
+            ], className="bracket-controls", style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
                       "borderRadius":"12px","padding":"20px","display":"flex","gap":"24px",
                       "flexWrap":"wrap","marginBottom":"24px"}),
             dcc.Loading(id="sim-loading", type="circle", color=COLORS["accent"],
                         children=html.Div(id="sim-results-panel")),
             html.Div(id="path-to-glory", style={"marginTop":"24px"}),
+
+            html.Div([
+                section_header("Tournament Progression Flow","How 48 teams funnel down to 1 champion (Sankey)",accent_color=COLORS["gold"]),
+                dcc.Loading(type="circle",color=COLORS["gold"],children=html.Div(id="sankey-container")),
+            ], style={"marginTop":"24px"}),
         ]),
     ])
+
+@app.callback(Output("sankey-container","children"), Input("run-sim-btn","n_clicks"))
+def update_sankey(_):
+    from utils.monte_carlo import get_progression_sankey_data
+    labels, sources, targets, values, link_colors = get_progression_sankey_data(n_sims=1500)
+
+    node_colors = [COLORS["accent"], COLORS["accent"], COLORS["accent2"],
+                    COLORS["accent3"], COLORS["gold"], COLORS["gold"], COLORS["live_red"]]
+
+    fig = go.Figure(go.Sankey(
+        node=dict(
+            label=labels,
+            color=node_colors,
+            pad=20, thickness=18,
+            line=dict(color=COLORS["border"], width=0.5),
+        ),
+        link=dict(source=sources, target=targets, value=values, color=link_colors),
+    ))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=COLORS["text_primary"], size=12),
+        margin=dict(l=10,r=10,t=20,b=10),
+        height=380,
+    )
+    return html.Div([
+        dcc.Graph(figure=fig, config={"displayModeBar":False}),
+        html.Div("48 teams enter the group stage · 32 advance to knockouts · only 1 lifts the trophy",
+                 style={"fontSize":"11px","color":COLORS["text_secondary"],"textAlign":"center","marginTop":"8px"}),
+    ], style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}","borderRadius":"12px","padding":"20px"})
 
 @app.callback(
     Output("sim-results-store","data"),
@@ -112,7 +146,7 @@ def run_simulation(n_clicks, n_sims):
                     html.Div("Stage-by-stage probability heatmap",style={"fontSize":"13px","fontWeight":"600","color":COLORS["text_secondary"],"marginBottom":"8px","textTransform":"uppercase","letterSpacing":"0.06em"}),
                     dcc.Graph(figure=fig_heat, config={"displayModeBar":False}),
                 ], style={"flex":"1.5","backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}","borderRadius":"12px","padding":"20px"}),
-            ], style={"display":"flex","gap":"20px","flexWrap":"wrap"}),
+            ], className="bracket-charts", style={"display":"flex","gap":"20px","flexWrap":"wrap"}),
             html.Div(f"Based on {n_sims:,} Monte Carlo simulations · Strength = 60% FIFA ranking + 40% group form",
                      style={"fontSize":"11px","color":COLORS["text_secondary"],"marginTop":"12px","textAlign":"center"}),
         ])

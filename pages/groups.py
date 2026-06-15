@@ -43,6 +43,15 @@ def _shock_index(team, opponent):
     if gap <= 0: return 50 - min(40, abs(gap)*1.5)
     return min(95, 50 + gap * 1.8)
 
+def _get_scenario_text(letter, sorted_teams, group_table):
+    """Generate qualification scenario text — AI if available, else template"""
+    from data.ai_insights import generate_qualification_scenario
+    from utils.monte_carlo import get_qualification_status
+    teams_list = [t["team"] for t in sorted_teams]
+    status = get_qualification_status(letter, teams_list, group_table)
+    return generate_qualification_scenario(letter, status)
+
+
 def _build_group_card(letter, teams, group_table):
     group_key   = f"Group {letter}"
     table_data  = group_table.get(group_key, {})
@@ -121,8 +130,8 @@ def _build_group_card(letter, teams, group_table):
             ],style={"display":"flex","alignItems":"center"}),
          ],style={"display":"flex","justifyContent":"space-between","alignItems":"center",
                   "marginBottom":"12px","paddingBottom":"8px","borderBottom":f"1px solid {COLORS['border']}"}),
-         header_row,
-        ] + rows_html + [
+         html.Div([header_row] + rows_html, className="standings-scroll"),
+        ] + [
         html.Div([
             html.Div(style={"height":"2px","background":f"linear-gradient(90deg,{group_color}80,transparent)","marginBottom":"6px"}),
             html.Span("↑ Top 2 advance · Best 8 third-place teams also qualify",style={"fontSize":"10px","color":COLORS["text_secondary"]}),
@@ -132,6 +141,11 @@ def _build_group_card(letter, teams, group_table):
         html.Div([
             html.Div("Points",style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"12px","marginBottom":"4px"}),
             dcc.Graph(figure=fig,config={"displayModeBar":False}),
+        ]),
+        ] + [
+        html.Div([
+            html.Div("📝 Scenario", style={"fontSize":"10px","color":COLORS["accent2"],"textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"14px","marginBottom":"6px"}),
+            html.Div(_get_scenario_text(letter, sorted_teams, group_table), style={"fontSize":"12px","color":COLORS["text_secondary"],"lineHeight":"1.5"}),
         ]),
         ],
         style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
@@ -147,5 +161,5 @@ def update_groups(_):
         pair = [html.Div(_build_group_card(l,WC2026_GROUPS[l],group_table),
                          style={"flex":"1","minWidth":"340px"})
                 for l in letters[i:i+2]]
-        rows.append(html.Div(pair,style={"display":"flex","gap":"20px","marginBottom":"20px","flexWrap":"wrap"}))
+        rows.append(html.Div(pair,className="group-pair",style={"display":"flex","gap":"20px","marginBottom":"20px","flexWrap":"wrap"}))
     return html.Div([section_header("Group Stage","12 groups · 48 teams · Qualification probabilities live")] + rows)

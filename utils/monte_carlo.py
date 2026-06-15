@@ -115,3 +115,127 @@ def run_simulation(n_sims=5000):
         results[team]["strength"] = round(strength_map.get(team, 0) * 100, 1)
 
     return results
+
+
+def get_qualification_status(group_letter, teams, group_table):
+    """
+    Returns sorted team status list for qualification scenario text:
+    [{"team":..., "flag":..., "pts":..., "gd":..., "p":...}, ...] sorted by pts/gd
+    """
+    from data.fetcher import get_flag
+    group_key = f"Group {group_letter}"
+    table_data = group_table.get(group_key, {})
+
+    status = []
+    for t in teams:
+        if t in table_data:
+            d = table_data[t]
+            status.append({
+                "team": t, "flag": get_flag(t),
+                "pts": d.get("pts", 0),
+                "gd": d.get("gf", 0) - d.get("ga", 0),
+                "p": d.get("p", 0),
+            })
+        else:
+            status.append({"team": t, "flag": get_flag(t), "pts": 0, "gd": 0, "p": 0})
+
+    status.sort(key=lambda x: (x["pts"], x["gd"]), reverse=True)
+    return status
+
+
+def get_progression_sankey_data(n_sims=3000):
+    """
+    Build Sankey diagram data: how teams flow through tournament stages.
+    Returns (labels, source_indices, target_indices, values, colors)
+    """
+    from data.fetcher import get_cache, WC2026_GROUPS, get_flag
+
+    cache = get_cache()
+    group_table = cache.get("groups", {})
+    all_teams = [t for teams in WC2026_GROUPS.values() for t in teams]
+    strength_map = {t: get_team_strength(t, group_table) for t in all_teams}
+
+    stages = ["Group Stage", "Round of 32", "Quarter-finals", "Semi-finals", "Final", "Champion"]
+
+    # Tally flows between consecutive stages
+    flow_counts = {}  # (team, from_stage, to_stage) -> count
+    elim_counts = {}  # (stage, "Eliminated") -> count of teams eliminated at that stage
+
+    for _ in range(n_sims):
+        group_winners, group_runners, third_places = {}, {}, []
+        for letter, teams in WC2026_GROUPS.items():
+            top2, third = simulate_group(teams, strength_map)
+            group_winners[letter] = top2[0]
+            group_runners[letter] = top2[1]
+            if third: third_places.append(third)
+
+        third_sorted = sorted(third_places, key=lambda t: strength_map.get(t, 0), reverse=True)
+        wild_cards = third_sorted[:8]
+        r32 = list(group_winners.values()) + list(group_runners.values()) + wild_cards
+
+        current = r32[:32]
+        np.random.shuffle(current)
+
+        all_teams_set = set(all_teams)
+        eliminated_in_groups = all_teams_set - set(current)
+        for t in eliminated_in_groups:
+            elim_counts[("Group Stage", "Eliminated")] = elim_counts.get(("Group Stage","Eliminated"), 0) + 1
+
+        stage_names = ["Round of 32", "Quarter-finals", "Semi-finals", "Final"]
+        for stage_idx, stage in enumerate(stage_names):
+            if len(current) < 2:
+                break
+            next_round = []
+            for i in range(0, len(current)-1, 2):
+                winner = simulate_match(current[i], current[i+1], strength_map)
+                loser = current[i] if winner == current[i+1] else current[i+1]
+                next_round.append(winner)
+                elim_counts[(stage, "Eliminated")] = elim_counts.get((stage,"Eliminated"), 0) + 1
+            current = next_round
+        if current:
+            elim_counts[("Final", "Champion")] = elim_counts.get(("Final","Champion"), 0) + 1
+
+    # Build simplified Sankey: Group Stage -> R32 -> QF -> SF -> Final -> Champion, plus Eliminated branches
+    labels = ["Group Stage", "Round of 32", "Quarter-finals", "Semi-finals", "Final", "Champion", "Eliminated"]
+    label_idx = {l: i for i, l in enumerate(labels)}
+
+    n_teams = 48
+    r32_count = 32
+    qf_count = 16
+    sf_count = 8
+    final_count = 4
+    champ_count = 1
+
+    sources, targets, values, colors = [], [], [], []
+
+    # Group Stage -> R32 / Eliminated
+    sources += [label_idx["Group Stage"], label_idx["Group Stage"]]
+    targets += [label_idx["Round of 32"], label_idx["Eliminated"]]
+    values  += [r32_count, n_teams - r32_count]
+    colors  += ["rgba(0,229,160,0.4)", "rgba(255,69,58,0.25)"]
+
+    # R32 -> QF / Eliminated
+    sources += [label_idx["Round of 32"], label_idx["Round of 32"]]
+    targets += [label_idx["Quarter-finals"], label_idx["Eliminated"]]
+    values  += [qf_count, r32_count - qf_count]
+    colors  += ["rgba(0,229,160,0.4)", "rgba(255,69,58,0.25)"]
+
+    # QF -> SF / Eliminated
+    sources += [label_idx["Quarter-finals"], label_idx["Quarter-finals"]]
+    targets += [label_idx["Semi-finals"], label_idx["Eliminated"]]
+    values  += [sf_count, qf_count - sf_count]
+    colors  += ["rgba(123,97,255,0.4)", "rgba(255,69,58,0.25)"]
+
+    # SF -> Final / Eliminated
+    sources += [label_idx["Semi-finals"], label_idx["Semi-finals"]]
+    targets += [label_idx["Final"], label_idx["Eliminated"]]
+    values  += [final_count, sf_count - final_count]
+    colors  += ["rgba(255,107,53,0.4)", "rgba(255,69,58,0.25)"]
+
+    # Final -> Champion / Eliminated (runner-up)
+    sources += [label_idx["Final"], label_idx["Final"]]
+    targets += [label_idx["Champion"], label_idx["Eliminated"]]
+    values  += [champ_count, final_count - champ_count]
+    colors  += ["rgba(255,215,0,0.5)", "rgba(255,69,58,0.25)"]
+
+    return labels, sources, targets, values, colors

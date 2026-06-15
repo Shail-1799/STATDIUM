@@ -211,3 +211,120 @@ button{cursor:pointer}
 button:hover{opacity:0.88;transform:translateY(-1px);transition:all 0.15s ease}
 
 @media(max-width:768px){.hide-mobile{display:none!important}.ticker-track{animation-duration:30s}}
+
+/* ════════════════════════════════════════════════════════
+   RESPONSIVE — mobile-first breakpoints
+   ════════════════════════════════════════════════════════ */
+
+/* ── Fluid page wrapper ── */
+.page-wrapper-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+}
+@media (min-width: 600px)  { .page-wrapper-inner { padding: 20px; } }
+@media (min-width: 1024px) { .page-wrapper-inner { padding: 24px; } }
+
+/* ── Navbar ── */
+@media (max-width: 700px) {
+  .statdium-navbar .nav-link { padding: 6px 9px; font-size: 12px; }
+  .statdium-navbar .typewriter-wrap { display: none !important; }
+  .statdium-navbar .navbar-inner { padding: 0 12px !important; }
+}
+@media (max-width: 480px) {
+  .statdium-navbar .nav-link { padding: 5px 7px; font-size: 11px; }
+  .nav-link[href="/formations"] { display: none; } /* hide last link on tiny screens */
+}
+
+/* ── Stat pills — wrap gracefully ── */
+.stat-pills-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+@media (max-width: 600px) {
+  .stat-pills-row { gap: 8px; }
+  .stat-pill { min-width: calc(33% - 8px) !important; padding: 10px 8px !important; }
+  .stat-pill-value { font-size: 18px !important; }
+}
+@media (max-width: 400px) {
+  .stat-pill { min-width: calc(50% - 8px) !important; }
+}
+
+/* ── Match scorecards ── */
+@media (max-width: 500px) {
+  .match-card { padding: 12px 10px !important; }
+}
+
+/* ── Two-column grids → single column on mobile ── */
+.resp-grid-2 { display: flex; gap: 20px; flex-wrap: wrap; }
+.resp-grid-2 > * { flex: 1; min-width: min(100%, 300px); }
+
+.resp-grid-3 { display: flex; gap: 20px; flex-wrap: wrap; }
+.resp-grid-3 > * { flex: 1; min-width: min(100%, 260px); }
+
+/* ── Groups standings table — scroll on mobile ── */
+.standings-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 600px) {
+  .standings-scroll { font-size: 11px; }
+}
+
+/* ── Bracket controls ── */
+@media (max-width: 650px) {
+  .bracket-controls { flex-direction: column !important; gap: 12px !important; }
+}
+
+/* ── Teams page ── */
+@media (max-width: 600px) {
+  .teams-vs-row { flex-direction: column !important; gap: 12px !important; }
+  .teams-vs-row .vs-text { display: none !important; }
+}
+
+/* ── Formations pitch ── */
+@media (max-width: 700px) {
+  .pitch-shock-row { flex-direction: column !important; }
+}
+
+/* ── Insights 3-col → stack ── */
+@media (max-width: 900px) {
+  .insights-3col > * { min-width: min(100%, 260px) !important; }
+}
+
+/* ── Ticker ── */
+@media (max-width: 500px) {
+  .ticker-item { padding: 0 16px !important; font-size: 11px !important; }
+  .ticker-label { font-size: 9px !important; padding: 0 8px !important; }
+}
+
+/* ── Group cards — 2 col → 1 col ── */
+@media (max-width: 750px) {
+  .group-pair { flex-direction: column !important; }
+  .group-pair > * { min-width: 100% !important; }
+}
+
+/* ── Full match timeline ── */
+.timeline-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+
+/* ── Bracket heatmap — allow horizontal scroll ── */
+.bracket-charts { display: flex; gap: 20px; flex-wrap: wrap; }
+.bracket-charts > * { flex: 1; min-width: min(100%, 300px); }
+
+/* ── Champions grid ── */
+@media (max-width: 500px) {
+  .champion-pill { padding: 6px 8px !important; }
+  .champ-team { font-size: 11px !important; }
+}
+
+/* ── Section headers ── */
+@media (max-width: 500px) {
+  .section-hdr-title { font-size: 15px !important; }
+  .section-hdr-sub   { font-size: 11px !important; }
+}
+
+/* ── Plotly graphs — force fluid width ── */
+.js-plotly-plot, .plot-container { width: 100% !important; }
+
+/* ── Formation group-death ranking ── */
+@media (max-width: 600px) {
+  .group-death-row { flex-wrap: wrap !important; }
+  .group-death-row .group-death-teams { display: none !important; }
+}
+
+/* ── AI Preview & Favorite banner ── */
+@keyframes favGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,0)}50%{box-shadow:0 0 16px 2px rgba(255,215,0,0.15)}}

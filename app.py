@@ -1,7 +1,7 @@
 from app_instance import app, server
 from components.ui import COLORS, navbar
 from data.fetcher import refresh_data
-from pages import live, groups, bracket, teams, insights, formations
+from pages import live, groups, bracket, teams, insights, formations, stadiums
 from dash import html, dcc, Input, Output
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -12,6 +12,7 @@ scheduler.start()
 app.layout = html.Div(
     [
         dcc.Location(id="url", refresh=False),
+        dcc.Store(id="favorite-team-store", storage_type="local"),
         navbar(),
         html.Div(
             id="page-content",
@@ -28,11 +29,18 @@ app.layout = html.Div(
                         html.A(
                             [
                                 html.Span(
+                                    "⚽",
+                                    style={
+                                        "fontSize": "clamp(14px, 2vw, 18px)",
+                                        "marginRight": "4px",
+                                    },
+                                ),
+                                html.Span(
                                     "STAT",
                                     style={
                                         "color": COLORS["text_primary"],
                                         "fontWeight": "900",
-                                        "fontSize": "22px",
+                                        "fontSize": "clamp(13px, 1.8vw, 16px)",
                                         "letterSpacing": "-0.03em",
                                     },
                                 ),
@@ -41,16 +49,8 @@ app.layout = html.Div(
                                     className="shiny-text",
                                     style={
                                         "fontWeight": "900",
-                                        "fontSize": "22px",
+                                        "fontSize": "clamp(13px, 1.8vw, 16px)",
                                         "letterSpacing": "-0.03em",
-                                    },
-                                ),
-                                html.Span(
-                                    " ⚽ © 2026 • Built with ❤️ by ",
-                                    style={
-                                        "color": COLORS["text_primary"],
-                                        "fontSize": "16px",
-                                        "marginLeft": "4px",
                                     },
                                 ),
                             ],
@@ -59,38 +59,53 @@ app.layout = html.Div(
                                 "textDecoration": "none",
                                 "display": "flex",
                                 "alignItems": "center",
+                                "whiteSpace": "nowrap",
+                            },
+                        ),
+                        html.Span(
+                            " © 2026 • Built with ❤️ by",
+                            style={
+                                "color": COLORS["text_primary"],
+                                "fontSize": "clamp(11px, 1.2vw, 14px)",
+                                "whiteSpace": "nowrap",
                             },
                         ),
                         html.A(
-                            " Shail Shukla",
+                            "Shail Shukla",
                             href="https://www.linkedin.com/in/shail-shukla/",
                             target="_blank",
                             className="shiny-text",
                             style={
                                 "fontWeight": "900",
-                                "fontSize": "22px",
-                                "letterSpacing": "-0.03em",
+                                "fontSize": "clamp(11px, 1.2vw, 14px)",
+                                "textDecoration": "none",
+                                "whiteSpace": "nowrap",
                             },
                         ),
-                        # html.Span("  ·  FIFA World Cup 2026 Analytics", style={"color":COLORS["text_secondary"],"fontSize":"12px"}),
-                        # html.Span("  ·  openfootball + football-data.org", style={"color":COLORS["text_secondary"],"fontSize":"11px"}),
                     ],
                     style={
                         "maxWidth": "1400px",
+                        "width": "100%",
                         "margin": "0 auto",
-                        "padding": "0 24px",
+                        "padding": "0 16px",
                         "display": "flex",
                         "alignItems": "center",
-                        "gap": "4px",
+                        "justifyContent": "center",
+                        "flexWrap": "wrap",
+                        "columnGap": "6px",
+                        "rowGap": "2px",
+                        "textAlign": "center",
                     },
                 ),
             ],
             style={
                 "backgroundColor": COLORS["bg_card"],
                 "borderTop": f"1px solid {COLORS['border']}",
-                "height": "48px",
+                "minHeight": "48px",
+                "padding": "10px 0",
                 "display": "flex",
                 "alignItems": "center",
+                "justifyContent": "center",
                 "marginTop": "48px",
                 "position": "relative",
                 "zIndex": "1",
@@ -109,6 +124,7 @@ def route(pathname):
         "/teams":      teams.layout,
         "/insights":   insights.layout,
         "/formations": formations.layout,
+        "/stadiums":   stadiums.layout,
     }.get(pathname, live.layout)()
 
 if __name__ == "__main__":

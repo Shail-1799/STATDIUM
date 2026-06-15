@@ -11,6 +11,7 @@ def layout():
         dcc.Interval(id="live-interval", interval=60000, n_intervals=0),
         html.Div(id="goal-ticker-bar"),
         page_wrapper([
+            html.Div(id="favorite-tracker", style={"marginBottom":"16px"}),
             html.Div(id="live-stats-bar", style={"marginBottom":"24px"}),
             html.Div([
                 html.Div([
@@ -25,6 +26,40 @@ def layout():
             html.Div(id="full-match-timeline", style={"marginTop":"32px"}),
         ]),
     ])
+
+@app.callback(Output("favorite-tracker","children"), Input("favorite-team-store","data"), Input("live-interval","n_intervals"))
+def update_favorite_tracker(fav_data, _):
+    fav = (fav_data or {}).get("team")
+    if not fav:
+        return html.Div()
+
+    all_matches = get_cache()["matches"]
+    team_matches = [m for m in all_matches if m["home_team"]==fav or m["away_team"]==fav]
+    if not team_matches:
+        return html.Div()
+
+    # Find next scheduled or live match, else most recent finished
+    next_match = None
+    for m in team_matches:
+        if m["status"] in ("LIVE","SCHEDULED"):
+            next_match = m; break
+    if not next_match:
+        finished = [m for m in team_matches if m["status"]=="FINISHED"]
+        next_match = sorted(finished, key=lambda x:x["date"], reverse=True)[0] if finished else None
+    if not next_match:
+        return html.Div()
+
+    return html.Div([
+        html.Div([
+            html.Span("⭐ ", style={"fontSize":"14px"}),
+            html.Span(f"Following {get_flag(fav)} {fav}", style={"fontSize":"12px","fontWeight":"700","color":COLORS["gold"]}),
+            html.Span(" — next up:" if next_match["status"]!="FINISHED" else " — last result:",
+                      style={"fontSize":"12px","color":COLORS["text_secondary"],"marginLeft":"6px"}),
+        ], style={"marginBottom":"8px"}),
+        match_scorecard(next_match),
+    ], className="glow-card", style={"backgroundColor":"rgba(255,215,0,0.05)","border":f"1px solid {COLORS['gold']}33",
+              "borderRadius":"12px","padding":"16px"})
+
 
 @app.callback(Output("goal-ticker-bar","children"), Input("live-interval","n_intervals"))
 def update_ticker(_):
@@ -55,7 +90,7 @@ def update_stats_bar(_):
             html.Div("Last sync", style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em"}),
             html.Div(lu, style={"fontSize":"13px","color":COLORS["accent"]}),
         ], className="stat-pill"),
-    ], style={"display":"flex","gap":"12px","flexWrap":"wrap","alignItems":"stretch"})
+    ], className="stat-pills-row", style={"display":"flex","gap":"12px","flexWrap":"wrap","alignItems":"stretch"})
 
 @app.callback(Output("today-matches","children"), Input("live-interval","n_intervals"))
 def update_today(_):
@@ -86,10 +121,44 @@ def update_recent(_):
 @app.callback(Output("upcoming-matches","children"), Input("live-interval","n_intervals"))
 def update_upcoming(_):
     upcoming = get_upcoming_matches(8)
-    cards = [match_scorecard(m) for m in upcoming] if upcoming else [
-        html.Div("All matches completed", style={"color":COLORS["text_secondary"],"padding":"20px"})
-    ]
+    if not upcoming:
+        return html.Div([section_header("Coming Up","Next fixtures",accent_color=COLORS["accent2"]),
+                         html.Div("All matches completed", style={"color":COLORS["text_secondary"],"padding":"20px"})])
+
+    cards = []
+    for i, m in enumerate(upcoming):
+        cards.append(match_scorecard(m))
+        if i == 0:
+            cards.append(_build_ai_preview(m))
     return html.Div([section_header("Coming Up","Next fixtures",accent_color=COLORS["accent2"])] + cards)
+
+
+def _build_ai_preview(match):
+    """Render AI/template preview for next match"""
+    from data.ai_insights import generate_match_preview, ai_enabled
+    from data.fetcher import FIFA_RANKINGS, get_cache
+    home, away = match["home_team"], match["away_team"]
+    h_rank = FIFA_RANKINGS.get(home, 60)
+    a_rank = FIFA_RANKINGS.get(away, 60)
+    gap = abs(h_rank - a_rank)
+    shock = min(92, max(8, 8+gap*1.8))
+    if gap <= 5: shock = max(20, 35+(5-gap)*3)
+
+    group_table = get_cache().get("groups", {})
+    def form(team):
+        for g in group_table.values():
+            if team in g: return g[team]
+        return {"pts":0,"gf":0,"ga":0}
+
+    text = generate_match_preview(home, away, h_rank, a_rank, form(home), form(away), shock, match_id=match["id"])
+    badge = "🤖 AI Preview" if ai_enabled() else "📋 Preview"
+
+    return html.Div([
+        html.Div(badge, style={"fontSize":"10px","fontWeight":"700","color":COLORS["accent2"],
+                               "textTransform":"uppercase","letterSpacing":"0.08em","marginBottom":"6px"}),
+        html.Div(text, style={"fontSize":"13px","color":COLORS["text_secondary"],"lineHeight":"1.6"}),
+    ], className="glow-card", style={"backgroundColor":COLORS["bg_card2"],"border":f"1px solid {COLORS['border']}",
+              "borderRadius":"10px","padding":"14px 16px","marginBottom":"16px","marginTop":"-4px"})
 
 @app.callback(Output("matches-timeline","children"), Input("live-interval","n_intervals"))
 def update_timeline(_):
@@ -157,7 +226,7 @@ def update_full_timeline(_):
 
     return html.Div([
         section_header("Match Timeline","All 104 fixtures — scroll →",accent_color=COLORS["accent2"]),
-        html.Div(date_cols, style={
+        html.Div(date_cols, className="timeline-scroll", style={
             "display":"flex","gap":"12px","overflowX":"auto","paddingBottom":"12px",
             "scrollbarWidth":"thin",
         }),

@@ -9,11 +9,14 @@ app = dash.Dash(
         "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
     ],
     suppress_callback_exceptions=True,
-    title="STATDIUM ⚽ FIFA World Cup 2026",
+    title="⚽ STATDIUM - FIFA World Cup 2026 Analytics",
     update_title=None,
     meta_tags=[
         {"name": "viewport", "content": "width=device-width, initial-scale=1"},
-        {"name": "description", "content": "STATDIUM — FIFA World Cup 2026 Live Analytics"},
+        {
+            "name": "description",
+            "content": "STATDIUM — FIFA World Cup 2026 Live Analytics",
+        },
     ],
 )
 server = app.server

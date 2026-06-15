@@ -1,4 +1,4 @@
-from dash import html, dcc, Input, Output
+from dash import html, dcc, Input, Output, State
 import plotly.graph_objects as go
 from app_instance import app
 from components.ui import COLORS, section_header, page_wrapper, stat_pill
@@ -11,23 +11,70 @@ def layout():
         page_wrapper([
             section_header("Team Explorer","Head-to-head comparison · Radar · Form guide",
                            accent_color=COLORS["accent3"]),
+            html.Div(id="favorite-banner", style={"marginBottom":"16px"}),
             html.Div([
                 html.Div([
                     html.Div("Team A",style={"fontSize":"11px","color":COLORS["accent"],"marginBottom":"6px","fontWeight":"700","textTransform":"uppercase","letterSpacing":"0.08em"}),
                     dcc.Dropdown(id="team-a", options=opts, value="Brazil", clearable=False),
                 ], style={"flex":"1"}),
-                html.Div("VS",style={"fontSize":"28px","fontWeight":"800","color":COLORS["text_secondary"],
+                html.Button("⭐ Follow this team", id="follow-team-btn", style={
+                    "alignSelf":"flex-end","fontSize":"11px","fontWeight":"700",
+                    "backgroundColor":"transparent","border":f"1px solid {COLORS['gold']}66",
+                    "color":COLORS["gold"],"borderRadius":"8px","padding":"10px 14px",
+                    "cursor":"pointer","whiteSpace":"nowrap","marginBottom":"1px",
+                }),
+                html.Div("VS",className="vs-text",style={"fontSize":"28px","fontWeight":"800","color":COLORS["text_secondary"],
                                      "alignSelf":"flex-end","paddingBottom":"4px","minWidth":"40px","textAlign":"center"}),
                 html.Div([
                     html.Div("Team B",style={"fontSize":"11px","color":COLORS["accent2"],"marginBottom":"6px","fontWeight":"700","textTransform":"uppercase","letterSpacing":"0.08em"}),
                     dcc.Dropdown(id="team-b", options=opts, value="France", clearable=False),
                 ], style={"flex":"1"}),
-            ], style={"display":"flex","gap":"16px","alignItems":"flex-end",
+            ], className="teams-vs-row", style={"display":"flex","gap":"16px","alignItems":"flex-end",
                       "backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
                       "borderRadius":"12px","padding":"20px","marginBottom":"24px"}),
             html.Div(id="team-comparison-content"),
         ]),
     ])
+
+
+@app.callback(Output("favorite-banner","children"), Input("favorite-team-store","data"))
+def show_favorite_banner(fav_data):
+    fav = (fav_data or {}).get("team")
+    if not fav:
+        return html.Div([
+            html.Span("⭐ ", style={"fontSize":"14px"}),
+            html.Span("Tip: pick a team in Team A and hit \"Follow this team\" to pin them across the app",
+                      style={"fontSize":"12px","color":COLORS["text_secondary"]}),
+        ], style={"padding":"10px 16px","backgroundColor":COLORS["bg_card2"],"borderRadius":"8px",
+                  "border":f"1px solid {COLORS['border']}"})
+    return html.Div([
+        html.Span(f"⭐ Following {get_flag(fav)} {fav}", style={"fontSize":"13px","fontWeight":"700","color":COLORS["gold"]}),
+        html.Button("Unfollow", id="unfollow-btn", style={
+            "marginLeft":"12px","fontSize":"11px","backgroundColor":"transparent",
+            "border":f"1px solid {COLORS['border']}","color":COLORS["text_secondary"],
+            "borderRadius":"6px","padding":"4px 10px","cursor":"pointer",
+        }),
+    ], style={"padding":"10px 16px","backgroundColor":"rgba(255,215,0,0.08)","borderRadius":"8px",
+              "border":f"1px solid {COLORS['gold']}44"})
+
+
+@app.callback(Output("favorite-team-store","data"),
+              Input("follow-team-btn","n_clicks"),
+              Input("unfollow-btn","n_clicks"),
+              State("team-a","value"),
+              State("favorite-team-store","data"),
+              prevent_initial_call=True)
+def update_favorite(follow_clicks, unfollow_clicks, team_a, current):
+    import dash
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return current
+    trigger = ctx.triggered[0]["prop_id"]
+    if "unfollow" in trigger:
+        return {}
+    if "follow-team-btn" in trigger:
+        return {"team": team_a}
+    return current
 
 def _get_team_stats(team, group_table):
     for grp in group_table.values():
@@ -86,7 +133,7 @@ def update_comparison(team_a, team_b):
     for stats, name, color in [(sa,team_a,COLORS["accent"]),(sb,team_b,COLORS["accent2"])]:
         fig_bars.add_bar(name=name, x=stat_names, y=[stats[k] for k in stat_keys],
                          marker_color=color, marker_line_width=0,
-                         text=[stats[k] for k in stat_keys], textposition="outside",
+                         text=[stats[k] for k in stat_keys], textposition="inside",
                          textfont=dict(size=12,color=color))
     fig_bars.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",

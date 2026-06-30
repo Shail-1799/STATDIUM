@@ -55,7 +55,8 @@ def match_scorecard(match):
     gl = str(match.get("group","")).replace("Group ","").strip()
     gc = COLORS["group_colors"].get(gl, COLORS["accent"])
     cls = "match-card glow-card live-glow-card" if is_live else "match-card glow-card"
-    return html.Div([
+    
+    card_content = html.Div([
         html.Div([
             html.Span(match.get("group",""),
                       style={"fontSize":"10px","fontWeight":"700","color":gc,
@@ -90,6 +91,13 @@ def match_scorecard(match):
                       style={"fontSize":"11px","color":COLORS["text_secondary"]}),
         ], style={"marginTop":"10px","textAlign":"center"}),
     ], className=cls)
+
+    return dcc.Link(
+        card_content,
+        href=f"/match/{match.get('id','')}",
+        className="match-card-link"
+    )
+
 
 def standings_row(rank, team, flag, p, w, d, l, gf, ga, pts, highlight=False):
     gd = gf - ga
@@ -177,7 +185,7 @@ def navbar():
                     ),
                     html.Div(
                         [
-                            dcc.Link("Live", href="/", className="nav-link"),
+                            dcc.Link("Live", href="/", className="nav-link active"),
                             dcc.Link(
                                 "Stadiums",
                                 href="/stadiums",

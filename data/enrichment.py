@@ -34,6 +34,46 @@ WC2026_STADIUMS = {
     "Estadio BBVA (Monterrey)":                    (25.6694, -100.2436),
 }
 
+# ── Stadium capacities ────────────────────────────────────────────────────
+STADIUM_CAPACITIES = {
+    "MetLife Stadium (New York/New Jersey)":      82500,
+    "AT&T Stadium (Dallas)":                      80000,
+    "SoFi Stadium (Los Angeles)":                 70240,
+    "Mercedes-Benz Stadium (Atlanta)":            71000,
+    "Hard Rock Stadium (Miami)":                  64767,
+    "Lincoln Financial Field (Philadelphia)":     69328,
+    "Levi's Stadium (San Francisco Bay Area)":    68500,
+    "NRG Stadium (Houston)":                      72220,
+    "Arrowhead Stadium (Kansas City)":            76416,
+    "Gillette Stadium (Boston)":                  65878,
+    "Lumen Field (Seattle)":                      68740,
+    "BMO Field (Toronto)":                        30000,
+    "BC Place (Vancouver)":                       54500,
+    "Estadio Azteca (Mexico City)":               87523,
+    "Estadio Akron (Guadalajara)":                49850,
+    "Estadio BBVA (Monterrey)":                   53500,
+}
+
+# ── Stadium host countries ─────────────────────────────────────────────────
+STADIUM_COUNTRIES = {
+    "MetLife Stadium (New York/New Jersey)":      "🇺🇸",
+    "AT&T Stadium (Dallas)":                      "🇺🇸",
+    "SoFi Stadium (Los Angeles)":                 "🇺🇸",
+    "Mercedes-Benz Stadium (Atlanta)":            "🇺🇸",
+    "Hard Rock Stadium (Miami)":                  "🇺🇸",
+    "Lincoln Financial Field (Philadelphia)":     "🇺🇸",
+    "Levi's Stadium (San Francisco Bay Area)":    "🇺🇸",
+    "NRG Stadium (Houston)":                      "🇺🇸",
+    "Arrowhead Stadium (Kansas City)":            "🇺🇸",
+    "Gillette Stadium (Boston)":                  "🇺🇸",
+    "Lumen Field (Seattle)":                      "🇺🇸",
+    "BMO Field (Toronto)":                        "🇨🇦",
+    "BC Place (Vancouver)":                       "🇨🇦",
+    "Estadio Azteca (Mexico City)":               "🇲🇽",
+    "Estadio Akron (Guadalajara)":                "🇲🇽",
+    "Estadio BBVA (Monterrey)":                   "🇲🇽",
+}
+
 # ── ISO3166 alpha-2 codes for REST Countries ───────────────────────────────
 ISO2_MAP = {
     "Argentina":"AR","Australia":"AU","Austria":"AT","Belgium":"BE",

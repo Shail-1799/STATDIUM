@@ -1,7 +1,7 @@
 from app_instance import app, server
 from components.ui import COLORS, navbar
 from data.fetcher import refresh_data
-from pages import live, groups, bracket, teams, insights, formations, stadiums
+from pages import live, groups, bracket, teams, insights, formations, stadiums, match_detail
 from dash import html, dcc, Input, Output
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -117,6 +117,10 @@ app.layout = html.Div(
 
 @app.callback(Output("page-content","children"), Input("url","pathname"))
 def route(pathname):
+    if pathname and pathname.startswith("/match/"):
+        match_id = pathname.split("/")[-1]
+        return match_detail.layout(match_id)
+        
     return {
         "/":           live.layout,
         "/groups":     groups.layout,

@@ -153,7 +153,7 @@ function initPageBlur(){
     pc.classList.remove('page-blur-in');
     void pc.offsetWidth;
     pc.classList.add('page-blur-in');
-    setTimeout(function(){initGlowCards();initTilt();initCountUp();updateNav();},100);
+    setTimeout(function(){initGlowCards();initTilt();initCountUp();updateNav();initStagger();},100);
   }).observe(pc,{childList:true,subtree:false});
 }
 
@@ -172,6 +172,24 @@ function initSpotlight(){
   });
 }
 
+/* ══ 9. STAGGER ANIMATIONS ═════════════════════════════════════════════ */
+function initStagger(){
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting&&!e.target._staggerDone){
+        e.target._staggerDone=true;
+        var children=e.target.querySelectorAll('.stagger-item');
+        children.forEach(function(child,i){
+          child.style.setProperty('--stagger-delay',(i*60)+'ms');
+        });
+      }
+    });
+  },{threshold:0.1});
+  document.querySelectorAll('.stagger-container').forEach(function(el){
+    if(!el._staggerObs){el._staggerObs=true;obs.observe(el);}
+  });
+}
+
 /* ══ INIT ALL ════════════════════════════════════════════════════════════ */
 function init(){
   initParticles();
@@ -182,6 +200,7 @@ function init(){
   updateNav();
   initPageBlur();
   initSpotlight();
+  initStagger();
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
@@ -192,6 +211,6 @@ document.addEventListener('click',function(){
 });
 
 // Periodic refresh for Dash dynamic content
-setInterval(function(){initGlowCards();initTilt();initCountUp();},2500);
+setInterval(function(){initGlowCards();initTilt();initCountUp();initStagger();},2500);
 
 })();

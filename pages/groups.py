@@ -159,7 +159,8 @@ def update_groups(_):
     rows = []
     for i in range(0,len(letters),2):
         pair = [html.Div(_build_group_card(l,WC2026_GROUPS[l],group_table),
+                         className="stagger-item",
                          style={"flex":"1","minWidth":"340px"})
                 for l in letters[i:i+2]]
-        rows.append(html.Div(pair,className="group-pair",style={"display":"flex","gap":"20px","marginBottom":"20px","flexWrap":"wrap"}))
+        rows.append(html.Div(pair,className="group-pair stagger-container",style={"display":"flex","gap":"20px","marginBottom":"20px","flexWrap":"wrap"}))
     return html.Div([section_header("Group Stage","12 groups · 48 teams · Qualification probabilities live")] + rows)

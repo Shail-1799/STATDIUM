@@ -7,7 +7,12 @@ import plotly.graph_objects as go
 from app_instance import app
 from components.ui import COLORS, section_header, page_wrapper
 from data.fetcher import WC2026_GROUPS, get_flag, FIFA_RANKINGS, get_cache
-from data.enrichment import WC2026_STADIUMS, fetch_stadium_weather, get_weather_label, ISO2_MAP
+from data.enrichment import (
+    WC2026_STADIUMS, STADIUM_CAPACITIES, STADIUM_COUNTRIES,
+    fetch_stadium_weather, get_weather_label, ISO2_MAP,
+)
+
+MAX_CAPACITY = max(STADIUM_CAPACITIES.values())  # for relative bar sizing
 
 def layout():
     return html.Div([
@@ -80,6 +85,9 @@ def update_stadiums(_):
     for stadium, (lat, lon) in WC2026_STADIUMS.items():
         city = stadium.split("(")[-1].replace(")","").strip()
         venue_name = stadium.split("(")[0].strip()
+        capacity = STADIUM_CAPACITIES.get(stadium, 0)
+        country_flag = STADIUM_COUNTRIES.get(stadium, "")
+        cap_pct = round(capacity / MAX_CAPACITY * 100) if capacity else 0
 
         weather = fetch_stadium_weather(stadium)
         if weather:
@@ -120,16 +128,40 @@ def update_stadiums(_):
             weather_block = html.Div("Weather data unavailable",
                                      style={"fontSize":"11px","color":COLORS["text_secondary"],"padding":"8px 0"})
 
+        # Capacity block
+        capacity_block = html.Div([
+            html.Div([
+                html.Span("Capacity", style={
+                    "fontSize": "10px", "color": COLORS["text_secondary"],
+                    "textTransform": "uppercase", "letterSpacing": "0.08em",
+                }),
+                html.Span(f"{capacity:,}", style={
+                    "fontSize": "13px", "fontWeight": "700", "color": COLORS["text_primary"],
+                }),
+            ], style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "4px"}),
+            html.Div([
+                html.Div(style={
+                    "width": f"{cap_pct}%",
+                }, className="capacity-bar-fill"),
+            ], className="capacity-bar-wrap"),
+        ], style={"marginTop": "12px", "paddingTop": "10px", "borderTop": f"1px solid {COLORS['border']}"})
+
         cards.append(html.Div([
             html.Div([
-                html.Div(venue_name, style={"fontSize":"14px","fontWeight":"700","color":COLORS["text_primary"]}),
-                html.Div(city, style={"fontSize":"11px","color":COLORS["accent"]}),
+                html.Div([
+                    html.Div(venue_name, style={"fontSize":"14px","fontWeight":"700","color":COLORS["text_primary"]}),
+                    html.Div([
+                        html.Span(country_flag, style={"fontSize": "14px", "marginRight": "4px"}),
+                        html.Span(city, style={"fontSize":"11px","color":COLORS["accent"]}),
+                    ], style={"display": "flex", "alignItems": "center", "marginTop": "2px"}),
+                ]),
             ], style={"marginBottom":"10px"}),
             weather_block,
-        ], className="glow-card", style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
+            capacity_block,
+        ], className="glow-card stagger-item", style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
                   "borderRadius":"12px","padding":"16px","flex":"1","minWidth":"220px"}))
 
     return html.Div([
         section_header("Host Venues","Current conditions + 3-day forecast",accent_color=COLORS["accent3"]),
-        html.Div(cards, className="resp-grid-3", style={"display":"flex","gap":"16px","flexWrap":"wrap"}),
+        html.Div(cards, className="resp-grid-3 stagger-container", style={"display":"flex","gap":"16px","flexWrap":"wrap"}),
     ])

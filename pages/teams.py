@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from app_instance import app
 from components.ui import COLORS, section_header, page_wrapper, stat_pill
 from data.fetcher import WC2026_GROUPS, get_flag, get_cache, FIFA_RANKINGS
+from data.enrichment import fetch_country_profile
 
 def layout():
     all_teams = sorted([t for teams in WC2026_GROUPS.values() for t in teams])
@@ -145,6 +146,39 @@ def update_comparison(team_a, team_b):
         bargap=0.15,bargroupgap=0.05,
     )
 
+    def _build_country_profile(team):
+        """Build country profile card from REST Countries data"""
+        profile = fetch_country_profile(team)
+        if not profile:
+            return html.Div()
+        pop = profile.get("population", 0)
+        if pop >= 1_000_000:
+            pop_str = f"{pop / 1_000_000:.1f}M"
+        elif pop >= 1_000:
+            pop_str = f"{pop / 1_000:.0f}K"
+        else:
+            pop_str = str(pop)
+        langs = ", ".join(profile.get("languages", [])[:3])
+        rows = [
+            ("Capital", profile.get("capital", "—")),
+            ("Region", profile.get("subregion", profile.get("region", "—"))),
+            ("Population", pop_str),
+        ]
+        if langs:
+            rows.append(("Languages", langs))
+        return html.Div([
+            html.Div("🌍 Country Profile", style={
+                "fontSize": "10px", "fontWeight": "700", "color": COLORS["text_secondary"],
+                "textTransform": "uppercase", "letterSpacing": "0.08em", "marginBottom": "8px",
+            }),
+        ] + [
+            html.Div([
+                html.Span(label, className="country-profile-label"),
+                html.Span(value, className="country-profile-value"),
+            ], className="country-profile-row")
+            for label, value in rows
+        ], className="country-profile-card")
+
     def team_card(team, stats, rank, group, color):
         return html.Div([
             html.Div(get_flag(team),style={"fontSize":"52px","textAlign":"center","marginBottom":"8px"}),
@@ -160,6 +194,7 @@ def update_comparison(team_a, team_b):
                 stat_pill("GD",f"{'+' if stats['gd']>=0 else ''}{stats['gd']}",
                           color=COLORS["win_green"] if stats["gd"]>0 else (COLORS["loss_red"] if stats["gd"]<0 else COLORS["text_secondary"])),
             ], style={"display":"flex","gap":"8px","flexWrap":"wrap","justifyContent":"center"}),
+            _build_country_profile(team),
         ], style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {color}44",
                   "borderTop":f"3px solid {color}","borderRadius":"12px","padding":"20px","flex":"1","minWidth":"200px"})
 

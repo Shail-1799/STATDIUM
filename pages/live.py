@@ -6,24 +6,151 @@ from data.fetcher import get_today_matches, get_recent_matches, get_upcoming_mat
 from datetime import datetime, timezone
 from collections import defaultdict
 
+
+def _hero_section():
+    """Premium hero banner for the landing page"""
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Span(className="live-dot"),
+                html.Span("TOURNAMENT LIVE", style={
+                    "fontSize": "10px", "fontWeight": "700", "color": COLORS["accent"],
+                    "textTransform": "uppercase", "letterSpacing": "0.14em",
+                }),
+            ], style={"display": "flex", "alignItems": "center", "gap": "6px", "marginBottom": "12px"}),
+
+            html.Div("FIFA World Cup 2026", className="hero-gradient-text", style={
+                "fontSize": "clamp(28px, 5vw, 42px)", "fontWeight": "900",
+                "letterSpacing": "-0.03em", "lineHeight": "1.1", "marginBottom": "8px",
+            }),
+            html.Div("Live Analytics Dashboard", style={
+                "fontSize": "clamp(14px, 2.5vw, 18px)", "fontWeight": "500",
+                "color": COLORS["text_secondary"], "marginBottom": "20px",
+            }),
+
+            html.Div([
+                html.Span("🇺🇸 United States", className="hero-host-chip"),
+                html.Span("🇲🇽 Mexico", className="hero-host-chip"),
+                html.Span("🇨🇦 Canada", className="hero-host-chip"),
+            ], className="hero-hosts"),
+
+            html.Div([
+                html.Span("June 11 – July 19, 2026", style={
+                    "fontSize": "12px", "color": COLORS["text_secondary"],
+                }),
+                html.Span(" · ", style={"color": COLORS["border"], "margin": "0 6px"}),
+                html.Span("48 Teams", style={
+                    "fontSize": "12px", "color": COLORS["accent"], "fontWeight": "600",
+                }),
+                html.Span(" · ", style={"color": COLORS["border"], "margin": "0 6px"}),
+                html.Span("16 Venues", style={
+                    "fontSize": "12px", "color": COLORS["accent2"], "fontWeight": "600",
+                }),
+                html.Span(" · ", style={"color": COLORS["border"], "margin": "0 6px"}),
+                html.Span("104 Matches", style={
+                    "fontSize": "12px", "color": COLORS["accent3"], "fontWeight": "600",
+                }),
+            ], style={"marginTop": "16px", "display": "flex", "flexWrap": "wrap", "alignItems": "center"}),
+        ]),
+    ], className="hero-section")
+
+
+def _build_countdown(upcoming, total_matches=0):
+    """Build a countdown card to the next match, or appropriate state card"""
+    if not upcoming:
+        if total_matches == 0:
+            # No data loaded yet — API may be unreachable
+            return html.Div([
+                html.Div("⚽", className="countdown-ball"),
+                html.Div("Fetching match data...", style={
+                    "fontSize": "18px", "fontWeight": "700", "color": COLORS["text_primary"],
+                    "textAlign": "center", "marginTop": "12px", "marginBottom": "8px",
+                }),
+                html.Div("Live data will appear here once the API responds. Refresh in a moment.", style={
+                    "fontSize": "13px", "color": COLORS["text_secondary"], "textAlign": "center",
+                }),
+                html.Div([
+                    html.Span(className="live-dot"),
+                    html.Span("Connecting to data sources...", style={
+                        "fontSize": "11px", "color": COLORS["text_secondary"],
+                    }),
+                ], style={"display": "flex", "alignItems": "center", "justifyContent": "center",
+                          "gap": "6px", "marginTop": "16px"}),
+            ], className="countdown-card glow-card")
+        else:
+            # All matches played — tournament complete
+            return html.Div([
+                html.Div("🏆", style={"fontSize": "64px", "textAlign": "center", "marginBottom": "16px"}),
+                html.Div("Tournament Complete!", style={
+                    "fontSize": "22px", "fontWeight": "800", "color": COLORS["gold"],
+                    "textAlign": "center", "marginBottom": "8px",
+                }),
+                html.Div("All 104 matches have been played. What a tournament!", style={
+                    "fontSize": "14px", "color": COLORS["text_secondary"], "textAlign": "center",
+                }),
+            ], className="countdown-card celebrate-card glow-card")
+
+    next_match = upcoming[0]
+    match_date = next_match.get("date", "")
+
+    return html.Div([
+        html.Div("⚽", className="countdown-ball"),
+        html.Div("Next Match", style={
+            "fontSize": "11px", "fontWeight": "700", "color": COLORS["text_secondary"],
+            "textTransform": "uppercase", "letterSpacing": "0.12em", "marginTop": "12px",
+        }),
+        html.Div([
+            html.Span(next_match.get("home_flag", ""), style={"fontSize": "36px"}),
+            html.Div([
+                html.Div(next_match.get("home_team", ""), style={
+                    "fontSize": "15px", "fontWeight": "700", "color": COLORS["text_primary"],
+                }),
+                html.Div("vs", style={
+                    "fontSize": "12px", "color": COLORS["text_secondary"], "margin": "2px 0",
+                }),
+                html.Div(next_match.get("away_team", ""), style={
+                    "fontSize": "15px", "fontWeight": "700", "color": COLORS["text_primary"],
+                }),
+            ], style={"textAlign": "center", "margin": "0 16px"}),
+            html.Span(next_match.get("away_flag", ""), style={"fontSize": "36px"}),
+        ], style={
+            "display": "flex", "alignItems": "center", "justifyContent": "center",
+            "marginTop": "16px",
+        }),
+        html.Div([
+            html.Span(f"📅 {match_date}", style={"fontSize": "12px", "color": COLORS["text_secondary"]}),
+            html.Span(f" · {next_match.get('venue', '')}" if next_match.get("venue") else "",
+                      style={"fontSize": "12px", "color": COLORS["text_secondary"]}),
+        ], style={"marginTop": "14px"}),
+        html.Div([
+            html.Span(next_match.get("group", ""), style={
+                "fontSize": "10px", "fontWeight": "700",
+                "color": COLORS["accent"], "backgroundColor": "rgba(0,229,160,0.1)",
+                "padding": "3px 10px", "borderRadius": "4px",
+            }),
+        ], style={"marginTop": "10px"}),
+    ], className="countdown-card glow-card")
+
+
 def layout():
     return html.Div([
         dcc.Interval(id="live-interval", interval=60000, n_intervals=0),
         html.Div(id="goal-ticker-bar"),
         page_wrapper([
-            html.Div(id="favorite-tracker", style={"marginBottom":"16px"}),
-            html.Div(id="live-stats-bar", style={"marginBottom":"24px"}),
+            _hero_section(),
+            html.Div(id="favorite-tracker", style={"marginBottom": "16px"}),
+            html.Div(id="live-stats-bar", style={"marginBottom": "24px"}),
             html.Div([
                 html.Div([
                     html.Div(id="today-matches"),
-                    html.Div(id="recent-matches", style={"marginTop":"24px"}),
-                ], style={"flex":"1.2","minWidth":"300px"}),
+                    html.Div(id="recent-matches", style={"marginTop": "24px"}),
+                ], style={"flex": "1.2", "minWidth": "300px"}),
                 html.Div([
                     html.Div(id="upcoming-matches"),
-                    html.Div(id="matches-timeline", style={"marginTop":"24px"}),
-                ], style={"flex":"1","minWidth":"280px"}),
-            ], style={"display":"flex","gap":"24px","flexWrap":"wrap"}),
-            html.Div(id="full-match-timeline", style={"marginTop":"32px"}),
+                    html.Div(id="matches-timeline", style={"marginTop": "24px"}),
+                ], style={"flex": "1", "minWidth": "280px"}),
+            ], style={"display": "flex", "gap": "24px", "flexWrap": "wrap"}),
+            html.Div(id="full-match-timeline", style={"marginTop": "32px"}),
         ]),
     ])
 
@@ -70,6 +197,25 @@ def update_ticker(_):
 def update_stats_bar(_):
     cache = get_cache()
     matches = cache["matches"]
+
+    # Show shimmer skeleton when no data is loaded
+    if not matches:
+        labels = ["Total Matches", "Played", "Live Now", "Upcoming", "Total Goals", "Avg Goals/Match"]
+        skeleton_pills = [
+            html.Div([
+                html.Div(className="skeleton-bar skeleton-bar-wide"),
+                html.Div(label, className="stat-pill-label"),
+            ], className="skeleton-pill stagger-item")
+            for label in labels
+        ]
+        skeleton_pills.append(html.Div([
+            html.Div(className="skeleton-bar skeleton-bar-wide"),
+            html.Div("Last sync", className="stat-pill-label"),
+        ], className="skeleton-pill stagger-item"))
+        return html.Div(skeleton_pills,
+            className="stat-pills-row stagger-container",
+            style={"display":"flex","gap":"12px","flexWrap":"wrap","alignItems":"stretch"})
+
     finished  = [m for m in matches if m["status"]=="FINISHED"]
     live_now  = [m for m in matches if m["status"]=="LIVE"]
     scheduled = [m for m in matches if m["status"]=="SCHEDULED"]
@@ -90,33 +236,50 @@ def update_stats_bar(_):
             html.Div("Last sync", style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em"}),
             html.Div(lu, style={"fontSize":"13px","color":COLORS["accent"]}),
         ], className="stat-pill"),
-    ], className="stat-pills-row", style={"display":"flex","gap":"12px","flexWrap":"wrap","alignItems":"stretch"})
+    ], className="stat-pills-row stagger-container", style={"display":"flex","gap":"12px","flexWrap":"wrap","alignItems":"stretch"})
 
 @app.callback(Output("today-matches","children"), Input("live-interval","n_intervals"))
 def update_today(_):
+    cache = get_cache()
+    all_matches = cache["matches"]
+    total_matches = len(all_matches)
     live_now  = get_matches(status="LIVE")
     today     = get_today_matches()
     seen      = {m["id"] for m in live_now}
     all_today = live_now + [m for m in today if m["id"] not in seen]
     if not all_today:
+        upcoming = get_upcoming_matches(1)
         recent = get_recent_matches(5)
-        cards  = [match_scorecard(m) for m in recent] if recent else [
-            html.Div([
-                html.Div("⚽", style={"fontSize":"48px","textAlign":"center","marginBottom":"12px"}),
-                html.Div("Tournament underway!", style={"fontSize":"16px","fontWeight":"700","color":COLORS["text_primary"],"textAlign":"center"}),
-                html.Div("First match: Mexico vs South Africa · Jun 11", style={"fontSize":"13px","color":COLORS["text_secondary"],"textAlign":"center","marginTop":"6px"}),
-            ], style={"padding":"32px 20px"})
-        ]
-        return html.Div([section_header("Recent Results","Latest completed matches")] + cards)
-    return html.Div([section_header("Today's Matches", f"{len(all_today)} match{'es' if len(all_today)!=1 else ''} today")]
-                    + [match_scorecard(m) for m in all_today])
+        if recent:
+            cards = [html.Div(match_scorecard(m), className="stagger-item") for m in recent]
+            return html.Div([
+                section_header("Recent Results", "Latest completed matches"),
+                html.Div(cards, className="stagger-container"),
+                _build_countdown(upcoming, total_matches),
+            ])
+        else:
+            return html.Div([
+                _build_countdown(upcoming, total_matches),
+            ])
+    return html.Div([
+        section_header("Today's Matches", f"{len(all_today)} match{'es' if len(all_today)!=1 else ''} today"),
+        html.Div(
+            [html.Div(match_scorecard(m), className="stagger-item") for m in all_today],
+            className="stagger-container",
+        ),
+    ])
 
 @app.callback(Output("recent-matches","children"), Input("live-interval","n_intervals"))
 def update_recent(_):
     recent = get_recent_matches(6)
     if not recent: return html.Div()
-    return html.Div([section_header("Recent Results","Last completed matches")]
-                    + [match_scorecard(m) for m in recent])
+    return html.Div([
+        section_header("Recent Results","Last completed matches"),
+        html.Div(
+            [html.Div(match_scorecard(m), className="stagger-item") for m in recent],
+            className="stagger-container",
+        ),
+    ])
 
 @app.callback(Output("upcoming-matches","children"), Input("live-interval","n_intervals"))
 def update_upcoming(_):
@@ -127,10 +290,13 @@ def update_upcoming(_):
 
     cards = []
     for i, m in enumerate(upcoming):
-        cards.append(match_scorecard(m))
+        cards.append(html.Div(match_scorecard(m), className="stagger-item"))
         if i == 0:
             cards.append(_build_ai_preview(m))
-    return html.Div([section_header("Coming Up","Next fixtures",accent_color=COLORS["accent2"])] + cards)
+    return html.Div([
+        section_header("Coming Up","Next fixtures",accent_color=COLORS["accent2"]),
+        html.Div(cards, className="stagger-container"),
+    ])
 
 
 def _build_ai_preview(match):

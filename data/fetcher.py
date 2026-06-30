@@ -5,10 +5,13 @@ FD free tier: matches, standings, scorers, teams (with crest URLs)
 """
 import requests, json, time, threading, os
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+load_dotenv()  
+
 
 OPENFOOTBALL_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
 FD_BASE    = "https://api.football-data.org/v4"
-FD_KEY     = os.environ.get("FD_API_KEY", "")
+FD_KEY = os.getenv("FD_API_KEY", "")
 FD_HEADERS = {"X-Auth-Token": FD_KEY} if FD_KEY else {}
 WC_ID      = 2000   # football-data.org WC 2026 competition ID
 

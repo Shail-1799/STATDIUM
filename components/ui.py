@@ -345,11 +345,11 @@ def sidebar():
         html.Button("☰",**{"data-mobile-toggle":"true"},
                     style={"background":"none","border":"none","color":COLORS["text_primary"],
                            "fontSize":"20px","cursor":"pointer","padding":"4px 8px","lineHeight":"1"}),
-        html.A([
-            html.Span("⚽ ",style={"fontSize":"18px"}),
-            html.Span("STAT",style={"fontFamily":"var(--font-display)","fontWeight":"900","color":COLORS["text_primary"]}),
-            html.Span("DIUM",style={"fontFamily":"var(--font-display)","fontWeight":"900","color":COLORS["accent"]}),
-        ],href="/",style={"textDecoration":"none","display":"flex","alignItems":"center","fontSize":"18px","letterSpacing":"-0.02em"}),
+        # html.A([
+        #     html.Span("⚽ ",style={"fontSize":"18px"}),
+        #     html.Span("STAT",style={"fontFamily":"var(--font-display)","fontWeight":"900","color":COLORS["text_primary"]}),
+        #     html.Span("DIUM",style={"fontFamily":"var(--font-display)","fontWeight":"900","color":COLORS["accent"]}),
+        # ],href="/",style={"textDecoration":"none","display":"flex","alignItems":"center","fontSize":"18px","letterSpacing":"-0.02em"}),
     ],className="sidebar-mobile-topbar")
 
     return html.Div([overlay,sidebar_el,mobile_topbar])

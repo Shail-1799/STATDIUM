@@ -1736,7 +1736,7 @@ body::before {
   }
 
   .ticker-track {
-    animation-duration: 65s
+    animation-duration: 500s
   }
 
   .hero-title {

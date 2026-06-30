@@ -40,7 +40,6 @@
 ### 🧠 Intelligence
 | Feature | Description |
 |---|---|
-| **Elo Ratings** | Live from eloratings.net — powers all predictions |
 | **Tactical DNA** | Unique geometric SVG fingerprint per team from live stats |
 | **Fan Pulse Map** | World emotion choropleth — team performance as a sentiment layer |
 | **GDP vs Football** | Does money buy World Cup success? World Bank data bubble scatter |
@@ -89,7 +88,6 @@ statdium/
 │   ├── insights.py         # Choropleth + upsets + Wall of Champions
 │   ├── formations.py       # Pitch SVG + Shock Index + Group of Death
 │   ├── stadiums.py         # Clock wall + weather (merged)
-│   ├── confederations.py   # Elo wall + confederation chart
 │   ├── history.py          # WC heatmap 1930–2022 + H2H history
 │   ├── scenario.py         # What If scenario builder
 │   ├── tactical_dna.py     # DNA fingerprints + Fan Pulse map
@@ -117,7 +115,7 @@ statdium/
 ## 🚀 Run Locally
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/statdium
+git clone https://github.com/Shail-1799/statdium
 cd statdium
 pip install -r requirements.txt
 

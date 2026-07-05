@@ -1,48 +1,30 @@
 from dash import html, dcc, Input, Output
 import plotly.graph_objects as go
 from app_instance import app
-from components.ui import page_guide, COLORS, section_header, match_scorecard, stat_pill, page_wrapper, goal_ticker, get_flag_img
+from components.ui import page_guide, COLORS, section_header, match_scorecard, stat_pill, page_wrapper, goal_ticker
 from data.fetcher import get_today_matches, get_recent_matches, get_upcoming_matches, get_cache, get_matches, WC2026_GROUPS, FIFA_RANKINGS, get_flag
 from datetime import datetime, timezone
 from collections import defaultdict
 
 def _hero():
     """Cinematic landing hero — renders with live data on callback, static shell here."""
-    return html.Div(
-        [
-            # Eyebrow
-            html.Div(
-                "🏆  FIFA WORLD CUP 2026  ·  USA · CANADA · MEXICO",
-                className="hero-eyebrow",
-            ),
-            # Big title
-            html.Div([
-                html.Img(src="/assets/logo.png", style={"height": "clamp(30px, 6vw, 50px)", "marginRight": "6px"}),
-                html.Div(
-                [
-                    html.Span("STAT", style={"color": "var(--text-primary)"}),
-                    html.Span(
-                        "DIUM", className="shiny-text", style={"color": "var(--accent)"}
-                    ),
-                ],
-                className="hero-title",
-                style={"marginTop": "auto"},
-            ),
-            ],
-                style={"display": "flex", "alignItems": "center", "gap": "6px"}
-            ),
-            html.Div(
-                "Live Analytics · Elo Intelligence · Match Simulations · Historical Data",
-                className="hero-sub",
-            ),
-            # Live stat strip (populated by callback)
-            html.Div(id="hero-stat-strip"),
-        ],
-        className="hero-wrap",
-    )
+    return html.Div([
+        # Eyebrow
+        html.Div("🏆  FIFA WORLD CUP 2026  ·  USA · CANADA · MEXICO",
+                 className="hero-eyebrow"),
+        # Big title
+        html.Div([
+            html.Span("STAT", style={"color":"var(--text-primary)"}),
+            html.Span("DIUM", style={"color":"var(--accent)"}),
+        ], className="hero-title"),
+        html.Div("Live analytics · Elo intelligence · Match simulations · Historical data",
+                 className="hero-sub"),
+        # Live stat strip (populated by callback)
+        html.Div(id="hero-stat-strip"),
+    ], className="hero-wrap")
 
 
-GUIDE = page_guide("Live Match Centre", [
+GUIDE = page_guide("Live Dashboard", [
     ("⚡", "Auto-refreshes every 60 seconds — all data is live from openfootball + football-data.org."),
     ("⭐", "Go to Teams page to follow a team — their next match pins to the top of this page."),
     ("📅", "Match cards are grouped by date. Hover a card to tilt it; click for full match details."),
@@ -51,42 +33,27 @@ GUIDE = page_guide("Live Match Centre", [
 ], accent_color=COLORS["accent"])
 
 def layout():
-    return html.Div(
-        [
-            dcc.Interval(id="live-interval", interval=60000, n_intervals=0),
-            html.Div(id="goal-ticker-bar"),
-            _hero(),
-            page_wrapper(
-                [
-                    GUIDE,
-                    html.Div(id="favorite-tracker", style={"marginBottom": "16px"}),
-                    # html.Div(id="live-stats-bar", style={"marginBottom": "24px"}),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Div(id="today-matches"),
-                                    html.Div(
-                                        id="recent-matches", style={"marginTop": "24px"}
-                                    ),
-                                ],
-                                style={"flex": "1.2", "minWidth": "300px"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Div(id="upcoming-matches"),
-                                ],
-                                style={"flex": "1", "minWidth": "280px"},
-                            ),
-                        ],
-                        style={"display": "flex", "gap": "24px", "flexWrap": "wrap"},
-                    ),
-                    html.Div(id="matches-timeline", style={"marginTop": "24px"}),
-                    html.Div(id="full-match-timeline", style={"marginTop": "32px"}),
-                ]
-            ),
-        ]
-    )
+    return html.Div([
+        dcc.Interval(id="live-interval", interval=60000, n_intervals=0),
+        html.Div(id="goal-ticker-bar"),
+        _hero(),
+        page_wrapper([
+            GUIDE,
+            html.Div(id="favorite-tracker", style={"marginBottom":"16px"}),
+            html.Div(id="live-stats-bar", style={"marginBottom":"24px"}),
+            html.Div([
+                html.Div([
+                    html.Div(id="today-matches"),
+                    html.Div(id="recent-matches", style={"marginTop":"24px"}),
+                ], style={"flex":"1.2","minWidth":"300px"}),
+                html.Div([
+                    html.Div(id="upcoming-matches"),
+                    html.Div(id="matches-timeline", style={"marginTop":"24px"}),
+                ], style={"flex":"1","minWidth":"280px"}),
+            ], style={"display":"flex","gap":"24px","flexWrap":"wrap"}),
+            html.Div(id="full-match-timeline", style={"marginTop":"32px"}),
+        ]),
+    ])
 
 @app.callback(Output("favorite-tracker","children"), Input("favorite-team-store","data"), Input("live-interval","n_intervals"))
 def update_favorite_tracker(fav_data, _):
@@ -132,14 +99,10 @@ def update_hero_strip(_):
     matches = cache["matches"]
     finished = [m for m in matches if m["status"]=="FINISHED"]
     live_now = [m for m in matches if m["status"]=="LIVE"]
-    scheduled = [m for m in matches if m["status"] == "SCHEDULED"]    
     goals    = sum((m.get("home_score") or 0)+(m.get("away_score") or 0) for m in finished)
     scorers  = cache.get("scorers",[])
     top      = scorers[0]["name"] if scorers else "—"
     top_g    = scorers[0]["goals"] if scorers else 0
-    lu = cache.get("last_updated","–")
-    try: lu = datetime.fromisoformat(lu).strftime("%H:%M UTC")
-    except: pass
 
     def stat(val, lbl):
         return html.Div([
@@ -147,26 +110,21 @@ def update_hero_strip(_):
                       **{"data-target":str(val)} if str(val).isdigit() else {}),
             html.Span(lbl, className="hero-stat-lbl"),
         ], className="hero-stat")
-    
-    return html.Div(
-        [
-            stat(len(matches), "MATCHES"),
-            stat(len(finished), "PLAYED"),
-            stat(len(live_now) or 0, "LIVE NOW"),
-            stat(len(scheduled) or 0, "UPCOMING"),
-            stat(goals, "GOALS"),
-            stat(f"{round(goals/max(1,len(finished)),2)}", "AVG Goals/MATCH"),
-            stat(f"{lu}", "Last Updated"),
-            # html.Div([
-            #     html.Span(f"{top_g}⚽", className="hero-stat-val",
-            #               style={"fontSize":"16px","lineHeight":"1.2"}),
-            #     html.Span(top[:18]+"…" if len(top)>18 else top,
-            #               style={"fontSize":"9px","color":"var(--text-secondary)","textTransform":"uppercase","letterSpacing":"0.08em","display":"block","marginTop":"3px"}),
-            #     html.Span("TOP SCORER", className="hero-stat-lbl"),
-            # ], className="hero-stat"),
-        ],
-        className="hero-stat-strip",
-    )
+
+    return html.Div([
+        stat(len(matches),   "MATCHES"),
+        stat(len(finished),  "PLAYED"),
+        stat(len(live_now) or 0, "LIVE NOW"),
+        stat(goals,          "GOALS"),
+        stat(f"{round(goals/max(1,len(finished)),2)}", "AVG/MATCH"),
+        html.Div([
+            html.Span(f"{top_g}⚽", className="hero-stat-val",
+                      style={"fontSize":"16px","lineHeight":"1.2"}),
+            html.Span(top[:18]+"…" if len(top)>18 else top,
+                      style={"fontSize":"9px","color":"var(--text-secondary)","textTransform":"uppercase","letterSpacing":"0.08em","display":"block","marginTop":"3px"}),
+            html.Span("TOP SCORER", className="hero-stat-lbl"),
+        ], className="hero-stat"),
+    ], className="hero-stat-strip")
 
 
 @app.callback(Output("live-stats-bar","children"), Input("live-interval","n_intervals"))
@@ -202,7 +160,7 @@ def update_today(_):
     seen      = {m["id"] for m in live_now}
     all_today = live_now + [m for m in today if m["id"] not in seen]
     if not all_today:
-        recent = get_recent_matches(5)
+        recent = get_recent_matches(10)
         if recent:
             return _grouped_matches(recent, "Recent Results", "Latest completed matches")
         return html.Div([
@@ -221,7 +179,7 @@ def _grouped_matches(matches, title, subtitle):
         by_date[m.get("date","")].append(m)
     
     date_groups = []
-    for date_key in sorted(by_date.keys(), reverse=True):
+    for date_key in sorted(by_date.keys()):
         day_matches = by_date[date_key]
         try:
             label = datetime.strptime(date_key, "%Y-%m-%d").strftime("%A, %B %d").upper()
@@ -245,7 +203,7 @@ def _grouped_matches(matches, title, subtitle):
 
 @app.callback(Output("recent-matches","children"), Input("live-interval","n_intervals"))
 def update_recent(_):
-    recent = get_recent_matches(6)
+    recent = get_recent_matches(20)  # show up to 20 most recent matches
     if not recent: return html.Div()
     return _grouped_matches(recent, "Recent Results", "Last completed matches")
 
@@ -302,22 +260,14 @@ def update_timeline(_):
     goals_list = [daily_goals[d] for d in dates]
     avg_list   = [round(daily_goals[d]/max(1,daily_matches[d]),1) for d in dates]
     fig = go.Figure()
-    fig.add_bar(
-        x=dates,
-        y=goals_list,
-        name="Total Goals",
-        marker_color=COLORS["accent"],
-        marker_line_width=0,
-        opacity=0.85,
-        
-    )
+    fig.add_bar(x=dates, y=goals_list, name="Total Goals", marker_color=COLORS["accent"], marker_line_width=0, opacity=0.85)
     fig.add_scatter(x=dates, y=avg_list, name="Avg/match", mode="lines+markers",
                     line=dict(color=COLORS["accent3"],width=2), marker=dict(size=6,color=COLORS["accent3"]), yaxis="y2")
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=COLORS["text_secondary"],size=11),
-        margin=dict(l=0,r=0,t=0,b=0), height=300, showlegend=True,
-        legend=dict(orientation="h",xanchor="center",y=1.2,font=dict(size=10),bgcolor="rgba(0,0,0,0)", x=0.5),
+        margin=dict(l=0,r=0,t=8,b=0), height=220, showlegend=True,
+        legend=dict(orientation="h",x=0,y=1.15,font=dict(size=10),bgcolor="rgba(0,0,0,0)"),
         xaxis=dict(showgrid=False,zeroline=False,tickfont=dict(size=9,color=COLORS["text_secondary"])),
         yaxis=dict(showgrid=True,gridcolor=COLORS["border"],zeroline=False,tickfont=dict(size=9)),
         yaxis2=dict(overlaying="y",side="right",showgrid=False,zeroline=False,tickfont=dict(size=9,color=COLORS["accent3"])),
@@ -335,7 +285,7 @@ def update_full_timeline(_):
     by_date = defaultdict(list)
     for m in matches:
         by_date[m.get("date","unknown")].append(m)
-    dates = sorted(by_date.keys())[:20]
+    dates = sorted(by_date.keys())  # show ALL dates, no artificial cap
     if not dates: return html.Div()
 
     date_cols = []
@@ -346,59 +296,20 @@ def update_full_timeline(_):
         except:
             label = d
         finished_count = sum(1 for m in day_matches if m["status"]=="FINISHED")
-        date_cols.append(
-            html.Div(
-                [
-                    html.Div(
-                        label,
-                        style={
-                            "fontSize": "11px",
-                            "fontWeight": "700",
-                            "color": COLORS["accent"],
-                            "textAlign": "center",
-                            "marginBottom": "8px",
-                            "textTransform": "uppercase",
-                            "letterSpacing": "0.06em",
-                        },
-                    ),
-                    html.Div(
-                        f"{finished_count}/{len(day_matches)}",
-                        style={
-                            "fontSize": "10px",
-                            "color": COLORS["text_secondary"],
-                            "textAlign": "center",
-                            "marginBottom": "10px",
-                        },
-                    ),
-                ]
-                + [
-                    html.Div(
-                        [
-                            html.Span(get_flag_img(m["home_team"], width=20)),
-                            html.Span(m["home_flag"], style={"fontSize": "14px"}),
-                            html.Span(
-                                (
-                                    f" {m.get('home_score','')}:{m.get('away_score','')}"
-                                    if m["status"] == "FINISHED"
-                                    else " vs"
-                                ),
-                                style={
-                                    "fontSize": "11px",
-                                    "fontWeight": "600",
-                                    "color": COLORS["text_primary"],
-                                    "margin": "0 4px",
-                                },
-                            ),
-                            html.Span(m["away_flag"], style={"fontSize": "14px"}),
-                            html.Span(get_flag_img(m["away_team"], width=20)),
-                        ],
-                        className="timeline-match",
-                    )
-                    for m in day_matches
-                ],
-                style={"minWidth": "150px"},
-            )
-        )
+        date_cols.append(html.Div([
+            html.Div(label, style={"fontSize":"11px","fontWeight":"700","color":COLORS["accent"],"textAlign":"center","marginBottom":"8px","textTransform":"uppercase","letterSpacing":"0.06em"}),
+            html.Div(f"{finished_count}/{len(day_matches)}", style={"fontSize":"10px","color":COLORS["text_secondary"],"textAlign":"center","marginBottom":"10px"}),
+        ] + [
+            html.Div([
+                html.Span(m["home_flag"], style={"fontSize":"14px"}),
+                html.Span(
+                    f" {m.get('home_score','')}–{m.get('away_score','')}" if m["status"]=="FINISHED" else " vs",
+                    style={"fontSize":"11px","fontWeight":"600","color":COLORS["text_primary"],"margin":"0 4px"}
+                ),
+                html.Span(m["away_flag"], style={"fontSize":"14px"}),
+            ], className="timeline-match")
+            for m in day_matches
+        ], style={"minWidth":"130px"}))
 
     return html.Div([
         section_header("Match Timeline","All 104 fixtures — scroll →",accent_color=COLORS["accent2"]),

@@ -283,7 +283,7 @@ def update_comparison(team_a, team_b):
         "Goal Diff",
     ]
 
-    def rvals(s, elo):
+    def rvals(s):
         p = max(s["p"], 1)
         return [
             min(100, s["gf"] * 14),
@@ -294,7 +294,7 @@ def update_comparison(team_a, team_b):
             min(100, max(0, (s["gd"] + 9) * 6)),
         ]
 
-    va, vb = rvals(sa, ea), rvals(sb, eb)
+    va, vb = rvals(sa), rvals(sb)
 
     def hex_rgba(h, a=0.25):
         h = h.lstrip("#")
@@ -496,9 +496,13 @@ def update_comparison(team_a, team_b):
     )
 
     # ── Quick stats comparison ──
-    def cmp_row(label, va, vb):
-        better_a = va > vb
-        better_b = vb > va
+    def cmp_row(label, va, vb, lower_is_better=False):
+        if lower_is_better:
+            better_a = va < vb
+            better_b = vb < va
+        else:
+            better_a = va > vb
+            better_b = vb > va
         return html.Div(
             [
                 html.Span(
@@ -638,7 +642,7 @@ def update_comparison(team_a, team_b):
             ),
             cmp_row("Elo Rating", ea, eb),
             cmp_row(
-                "FIFA Rank ↑ lower is better", rb, ra
+                "FIFA Rank (Lower is Better)", ra, rb, lower_is_better=True
             ),  # inverted: lower rank number = better
             cmp_row("Points", sa["pts"], sb["pts"]),
             cmp_row("Wins", sa["w"], sb["w"]),

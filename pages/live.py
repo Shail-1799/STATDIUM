@@ -694,7 +694,7 @@ def update_full_timeline(_):
         [
             section_header(
                 "Match Timeline",
-                "All Completed fixtures — scroll →",
+                "Completed fixtures — scroll →",
                 accent_color=COLORS["accent2"],
             ),
             html.Div(

@@ -58,7 +58,7 @@ GUIDE = page_guide(
     [
         (
             "⚡",
-            "Auto-refreshes every 60 seconds — all data is live from openfootball + football-data.org.",
+            "Auto-refreshes every 20 seconds — all data is live from openfootball + football-data.org.",
         ),
         (
             "⭐",
@@ -84,7 +84,7 @@ GUIDE = page_guide(
 def layout():
     return html.Div(
         [
-            dcc.Interval(id="live-interval", interval=60000, n_intervals=0),
+            dcc.Interval(id="live-interval", interval=20000, n_intervals=0),
             html.Div(id="goal-ticker-bar"),
             _hero(),
             page_wrapper(
@@ -163,9 +163,20 @@ def update_favorite_tracker(fav_data, _):
         [
             html.Div(
                 [
-                    html.Span("⭐ ", style={"fontSize": "14px"}),
                     html.Span(
-                        f"Following {get_flag(fav)} {fav}",
+                        "⭐ Following",
+                        style={
+                            "fontSize": "12px",
+                            "fontWeight": "700",
+                            "color": COLORS["gold"],
+                        },
+                    ),
+                    html.Span(
+                        get_flag_img(fav, width=16),
+                        style={"marginRight": "5px", "marginLeft": "10px"},
+                    ),
+                    html.Span(
+                        f"{fav}",
                         style={
                             "fontSize": "12px",
                             "fontWeight": "700",
@@ -329,41 +340,35 @@ def update_today(_):
     seen = {m["id"] for m in live_now}
     all_today = live_now + [m for m in today if m["id"] not in seen]
     if not all_today:
-        recent = get_recent_matches(10)
-        if recent:
-            return _grouped_matches(
-                recent, "Recent Results", "Latest completed matches"
-            )
+        # No fixtures today — skip this section entirely rather than
+        # re-rendering "Recent Results" here too (that already has its own
+        # dedicated section right below, so showing it twice was the bug).
         return html.Div(
             [
+                section_header("Today's Matches", "No matches scheduled today"),
                 html.Div(
-                    "⚽",
-                    style={
-                        "fontSize": "48px",
-                        "textAlign": "center",
-                        "marginBottom": "12px",
-                    },
+                    [
+                        html.Div(
+                            "⚽",
+                            style={
+                                "fontSize": "36px",
+                                "textAlign": "center",
+                                "marginBottom": "8px",
+                                "opacity": "0.6",
+                            },
+                        ),
+                        html.Div(
+                            "No matches today — check Recent Results or Coming Up",
+                            style={
+                                "fontSize": "13px",
+                                "color": COLORS["text_secondary"],
+                                "textAlign": "center",
+                            },
+                        ),
+                    ],
+                    style={"padding": "24px 20px"},
                 ),
-                html.Div(
-                    "Tournament underway!",
-                    style={
-                        "fontSize": "16px",
-                        "fontWeight": "700",
-                        "color": COLORS["text_primary"],
-                        "textAlign": "center",
-                    },
-                ),
-                html.Div(
-                    "First match: Mexico vs South Africa · Jun 11",
-                    style={
-                        "fontSize": "13px",
-                        "color": COLORS["text_secondary"],
-                        "textAlign": "center",
-                        "marginTop": "6px",
-                    },
-                ),
-            ],
-            style={"padding": "32px 20px"},
+            ]
         )
     return _grouped_matches(
         all_today,

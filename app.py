@@ -1,6 +1,6 @@
 from app_instance import app, server
 from components.ui import COLORS, sidebar
-from data.fetcher import refresh_data, get_cache
+from data.fetcher import refresh_data, get_cache, refresh_matches
 from pages import (live, groups, bracket, teams, insights, formations,
                    stadiums, leaderboards, confederations,
                    scenario, tactical_dna, animated_bracket, history,
@@ -10,7 +10,8 @@ from dash import html, dcc, Input, Output
 from apscheduler.schedulers.background import BackgroundScheduler
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(refresh_data, "interval", seconds=60, id="data_refresh")
+scheduler.add_job(refresh_matches, "interval", seconds=20, id="fast_refresh")
+scheduler.add_job(refresh_data, "interval", seconds=120, id="full_refresh")
 scheduler.start()
 
 app.layout = html.Div(

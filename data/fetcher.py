@@ -273,7 +273,7 @@ def parse_openfootball(data):
     if not data:
         return [], {}
     matches, group_table = [], {}
-    today = datetime.now(timezone.utc).date()
+
     for m in data.get("matches", []):
         date_str = m.get("date", "")
         t1, t2 = m.get("team1", ""), m.get("team2", "")
@@ -289,18 +289,18 @@ def parse_openfootball(data):
             try:
                 h_score = int(ft[0])
                 a_score = int(ft[1])
-            except:
+            except (TypeError, ValueError):
                 pass
-        try:
-            md = datetime.strptime(date_str, "%Y-%m-%d").date()
-            if h_score is not None:
-                status = "FINISHED"
-            elif md < today:
-                status = "FINISHED"
-            else:
-                status = "SCHEDULED"
-        except:
-            status = "SCHEDULED"
+
+        # ONE rule, no guessing:
+        #   - a real score is in the feed  -> FINISHED
+        #   - no score yet                 -> SCHEDULED
+        # LIVE is never inferred here from dates/times/elapsed-minutes — the
+        # only place a match becomes LIVE is merge_fd_into_matches(), and only
+        # when football-data.org itself reports IN_PLAY/PAUSED for it. That
+        # keeps "Watch Live" tied to a real signal instead of a local guess.
+        status = "FINISHED" if h_score is not None else "SCHEDULED"
+
         matches.append(
             {
                 "id": f"{date_str}_{t1}_{t2}",
@@ -313,6 +313,7 @@ def parse_openfootball(data):
                 "home_score": h_score,
                 "away_score": a_score,
                 "status": status,
+                "minute": None,
                 "home_flag": get_flag(t1),
                 "away_flag": get_flag(t2),
                 "venue": venue,
@@ -320,8 +321,9 @@ def parse_openfootball(data):
                 "goals2": m.get("goals2", []) or [],
             }
         )
-        if status == "FINISHED" and h_score is not None:
+        if status == "FINISHED":
             _update_group_table(group_table, group, t1, t2, h_score, a_score)
+
     return matches, group_table
 
 
@@ -596,14 +598,44 @@ def merge_fd_into_matches(matches, fd_matches):
 
 
 # ── Main refresh ───────────────────────────────────────────────────────────
-def refresh_data():
+def refresh_matches():
+    """
+    FAST refresh: match scores/status only (openfootball + FD matches).
+    Cheap enough to run every 15-20s — openfootball is a raw GitHub file
+    (no meaningful rate limit) and FD's /matches endpoint is a single call.
+    Does NOT touch scorers or team crests, so it won't burn FD's free-tier
+    rate limit (10 req/min) even when polled aggressively.
+    """
     global _cache
-    print(f"[STATDIUM] Refreshing {datetime.now().strftime('%H:%M:%S')}…")
     raw = fetch_openfootball()
     matches, groups = parse_openfootball(raw)
     fd_matches = fetch_fd_matches()
     if fd_matches:
         matches = merge_fd_into_matches(matches, fd_matches)
+    with _lock:
+        _cache.update(
+            {
+                "matches": matches,
+                "groups": groups,
+                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "source": "openfootball" + ("+fd" if fd_matches else ""),
+            }
+        )
+    print(
+        f"[STATDIUM] fast refresh {datetime.now().strftime('%H:%M:%S')} · {len(matches)} matches"
+    )
+
+
+def refresh_data():
+    """
+    FULL refresh: matches + scorers + team crests. Run this less often
+    (every few minutes) — scorers/teams hit FD endpoints that are subject to
+    the free-tier rate limit, so this shouldn't be polled every 20s.
+    """
+    print(f"[STATDIUM] full refresh {datetime.now().strftime('%H:%M:%S')}…")
+    refresh_matches()
+    with _lock:
+        matches = _cache["matches"]
     fd_scorers_raw = fetch_fd_scorers()
     scorers = (
         parse_fd_scorers(fd_scorers_raw)
@@ -615,16 +647,7 @@ def refresh_data():
         existing_teams = _cache.get("teams", {})
     teams = existing_teams if existing_teams else fetch_fd_teams()
     with _lock:
-        _cache.update(
-            {
-                "matches": matches,
-                "groups": groups,
-                "scorers": scorers,
-                "teams": teams,
-                "last_updated": datetime.now(timezone.utc).isoformat(),
-                "source": "openfootball" + ("+fd" if fd_matches else ""),
-            }
-        )
+        _cache.update({"scorers": scorers, "teams": teams})
     print(
         f"[STATDIUM] {len(matches)} matches · {len(scorers)} scorers · {len(teams)} crests"
     )
@@ -659,10 +682,15 @@ def get_recent_matches(n=20):
 
 
 def get_upcoming_matches(n=10):
-    return sorted(
-        [m for m in get_cache()["matches"] if m["status"] == "SCHEDULED"],
-        key=lambda x: x["date"],
-    )[:n]
+    """Strictly FUTURE fixtures — excludes today so it never duplicates
+    what's already shown in Today's Matches."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    upcoming = [
+        m
+        for m in get_cache()["matches"]
+        if m["status"] == "SCHEDULED" and m.get("date", "") > today
+    ]
+    return sorted(upcoming, key=lambda x: x["date"])[:n]
 
 
 refresh_data()

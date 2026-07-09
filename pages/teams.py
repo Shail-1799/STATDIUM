@@ -151,14 +151,23 @@ def render_follow_banner(fav_data, team_a):
         }
         return html.Div(
             [
-                html.Span("⭐", style={"fontSize": "16px"}),
-                get_flag_img(fav, width=22),
                 html.Span(
-                    f"Following {fav}",
+                    "⭐ Following ",
                     style={
+                        "fontSize": "12px",
                         "fontWeight": "700",
                         "color": COLORS["gold"],
-                        "fontSize": "13px",
+                    },
+                ),
+                html.Span(
+                    get_flag_img(fav, width=16),
+                ),
+                html.Span(
+                    f" {fav}",
+                    style={
+                        "fontSize": "12px",
+                        "fontWeight": "700",
+                        "color": COLORS["gold"],
                     },
                 ),
                 html.Button(
@@ -509,7 +518,7 @@ def update_comparison(team_a, team_b):
                     str(va),
                     style={
                         "fontWeight": "800" if better_a else "400",
-                        "color": ca if better_a else COLORS["text_secondary"],
+                        "color": ca,# if better_a else COLORS["text_secondary"],
                         "fontSize": "14px",
                         "width": "40px",
                         "textAlign": "right",
@@ -530,7 +539,7 @@ def update_comparison(team_a, team_b):
                     str(vb),
                     style={
                         "fontWeight": "800" if better_b else "400",
-                        "color": cb if better_b else COLORS["text_secondary"],
+                        "color": cb,# if better_b else COLORS["text_secondary"],
                         "fontSize": "14px",
                         "width": "40px",
                         "textAlign": "left",

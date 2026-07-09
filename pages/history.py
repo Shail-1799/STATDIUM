@@ -108,47 +108,7 @@ def layout():
             page_wrapper(
                 [
                     GUIDE,
-                    # Legend
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Div(
-                                        style={
-                                            "width": "16px",
-                                            "height": "16px",
-                                            "borderRadius": "3px",
-                                            "background": RESULT_COLOR[r],
-                                            "flexShrink": "0",
-                                        }
-                                    ),
-                                    html.Span(
-                                        RESULT_LABEL[r],
-                                        style={
-                                            "fontSize": "11px",
-                                            "color": COLORS["text_secondary"],
-                                        },
-                                    ),
-                                ],
-                                style={
-                                    "display": "flex",
-                                    "alignItems": "center",
-                                    "gap": "6px",
-                                },
-                            )
-                            for r in ["W", "F", "SF", "QF", "R16", "GS", "DNQ"]
-                        ],
-                        style={
-                            "display": "flex",
-                            "flexWrap": "wrap",
-                            "gap": "12px",
-                            "marginTop": "12px",
-                            "padding": "12px 16px",
-                            "background": COLORS["bg_card"],
-                            "border": f"1px solid {COLORS['border']}",
-                            "borderRadius": "10px",
-                        },
-                    ),
+                    
                     # ── Section 1: Historical heatmap ──
                     section_header(
                         "📜 World Cup History",

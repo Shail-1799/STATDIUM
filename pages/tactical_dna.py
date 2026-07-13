@@ -153,23 +153,54 @@ def layout():
     ])
 
 
+def _team_full_stats(team, matches):
+    """
+    Aggregate a team's complete record — group stage AND every knockout
+    round played so far — directly from finished matches. group_table alone
+    only ever holds group-stage numbers, so any team still alive in the
+    knockout rounds would otherwise show a fingerprint/stat card frozen at
+    whatever it looked like after 3 group games, silently ignoring every
+    knockout result since. One known, honest limitation: our match data
+    doesn't carry penalty-shootout detail, so a knockout tie that was
+    decided on penalties still counts as a "draw" here rather than a win/loss.
+    """
+    stats = {"p": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "pts": 0}
+    for m in matches:
+        if m.get("status") != "FINISHED":
+            continue
+        h, a = m.get("home_team"), m.get("away_team")
+        if team not in (h, a):
+            continue
+        hs, as_ = m.get("home_score"), m.get("away_score")
+        if hs is None or as_ is None:
+            continue
+        is_home = team == h
+        gf, ga = (hs, as_) if is_home else (as_, hs)
+        stats["p"] += 1
+        stats["gf"] += gf
+        stats["ga"] += ga
+        if gf > ga:
+            stats["w"] += 1
+            stats["pts"] += 3
+        elif gf == ga:
+            stats["d"] += 1
+            stats["pts"] += 1
+        else:
+            stats["l"] += 1
+    return stats
+
+
 @app.callback(Output("dna-grid","children"), Input("dna-teams","value"))
 def update_dna(selected_teams):
     if not selected_teams: return html.Div("Select teams above", style={"color":COLORS["text_secondary"],"padding":"20px"})
     selected_teams = selected_teams[:8]
 
     cache = get_cache()
-    group_table = cache.get("groups", {})
+    matches = cache.get("matches", [])
 
     cards = []
     for team in selected_teams:
-        stats = {"p":0,"w":0,"d":0,"l":0,"gf":0,"ga":0,"pts":0}
-        for grp_data in group_table.values():
-            if team in grp_data:
-                s = grp_data[team]
-                stats = {"p":s.get("p",0),"w":s.get("w",0),"d":s.get("d",0),"l":s.get("l",0),
-                         "gf":s.get("gf",0),"ga":s.get("ga",0),"pts":s.get("pts",0)}
-                break
+        stats = _team_full_stats(team, matches)
 
         elo = get_elo_with_fallback(team)
         rank = FIFA_RANKINGS.get(team, 60)
@@ -312,7 +343,6 @@ def update_dna(selected_teams):
 def update_fan_pulse(_):
     """World choropleth colored by team performance score — the 'emotion' layer."""
     cache = get_cache()
-    group_table = cache.get("groups",{})
     matches = cache.get("matches",[])
     finished = [m for m in matches if m["status"]=="FINISHED"]
 
@@ -332,17 +362,11 @@ def update_fan_pulse(_):
     }
 
     rows = []
-    # Build flat team→stats lookup (group_table keys vary: "A", "Group A", etc.)
-    flat_stats = {}
-    for grp_key, grp_data in group_table.items():
-        for team_name, s in grp_data.items():
-            flat_stats[team_name] = s
-
     for grp, teams in WC2026_GROUPS.items():
         for team in teams:
             iso3 = ISO3_MAP.get(team,"")
             if not iso3: continue
-            stats = flat_stats.get(team, {})
+            stats = _team_full_stats(team, matches)
             pts = stats.get("pts",0)
             gf  = stats.get("gf",0)
             ga  = stats.get("ga",0)

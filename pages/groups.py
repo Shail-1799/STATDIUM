@@ -6,11 +6,11 @@ from data.fetcher import get_cache, WC2026_GROUPS, get_flag, FIFA_RANKINGS
 import numpy as np
 
 GUIDE = page_guide("Groups", [
-    ("📊", "All 12 groups shown with live standings — updates every 60 seconds as matches finish."),
+    ("📊", "All 12 groups shown with live standings — updates every 30 seconds as matches finish."),
     ("🟢", "Green left border = qualifying position (top 2 advance to Round of 32)."),
     ("🔴", "Red left border = elimination zone (bottom 2 when all group matches played)."),
-    ("📈", "Probability bars show each team's qualification chance from 10k Monte Carlo simulations."),
-    ("💬", "Scenario text below each group explains what each team needs to advance."),
+    ("📈", "While the group is still in progress: qualification-chance bars from live Monte Carlo simulation."),
+    ("✅", "Once a group finishes all 6 matches: probability bars are replaced by the final Advanced/Eliminated result — no more guessing once it's decided."),
 ], accent_color=COLORS["accent"])
 
 def layout():
@@ -73,11 +73,32 @@ def _get_scenario_text(letter, sorted_teams, group_table):
                 f"but {third} are breathing down their necks — must-win matches ahead.")
 
 
-def _build_group_card(letter, teams, group_table):
+def _get_final_scenario_text(letter, sorted_teams, qualified_teams):
+    """Group is fully finished — state what actually happened, not what
+    might happen. No probabilities, no 'must-win', it's already decided."""
+    advanced = [t["team"] for t in sorted_teams if t["team"] in qualified_teams]
+    if not advanced:
+        return f"Group {letter} — final standings locked in."
+    if len(advanced) == 1:
+        adv_text = advanced[0]
+    elif len(advanced) == 2:
+        adv_text = f"{advanced[0]} and {advanced[1]}"
+    else:
+        adv_text = ", ".join(advanced[:-1]) + f", and {advanced[-1]}"
+    return f"✅ Group {letter} complete — {adv_text} advanced to the knockout stage."
+
+
+def _build_group_card(letter, teams, group_table, all_complete=False, qualified_teams=None):
+    qualified_teams = qualified_teams or set()
     group_key   = f"Group {letter}"
     table_data  = group_table.get(group_key, {})
     group_color = COLORS["group_colors"].get(letter, COLORS["accent"])
     played      = sum(t.get("p",0) for t in table_data.values())//2 if table_data else 0
+    # Gate on the GLOBAL all_complete flag, not this group's own played
+    # count: a group finishing its 6 matches early can't correctly declare
+    # its 3rd-place team eliminated until every other group has ALSO
+    # finished — otherwise the best-8-thirds comparison isn't fair yet.
+    group_done  = all_complete
 
     if table_data:
         sorted_teams = sorted(table_data.values(), key=lambda t:(t["pts"],t.get("gf",0)-t.get("ga",0),t.get("gf",0)), reverse=True)
@@ -88,8 +109,11 @@ def _build_group_card(letter, teams, group_table):
     else:
         sorted_teams = [{"team":t,"p":0,"w":0,"d":0,"l":0,"gf":0,"ga":0,"pts":0} for t in teams]
 
-    # Qualification probabilities
-    probs = _qualify_probs(teams, table_data, n_sims=800)
+    # Qualification probabilities — only meaningful while the group is
+    # actually still in progress. Once it's finished, running a Monte Carlo
+    # sim to estimate the "chance" of something that's already 100% decided
+    # is exactly the kind of stale-relevance issue worth never showing again.
+    probs = {} if group_done else _qualify_probs(teams, table_data, n_sims=800)
 
     # Average strength → Group of Death?
     avg_rank = sum(FIFA_RANKINGS.get(t,60) for t in teams)/len(teams)
@@ -125,46 +149,41 @@ def _build_group_card(letter, teams, group_table):
             t.get("gf", 0),
             t.get("ga", 0),
             t["pts"],
-            qualify=(rank <= 2),
+            qualify=(t["team"] in qualified_teams) if group_done else (rank <= 2),
         )
         for rank, t in enumerate(sorted_teams, 1)
     ]
 
-    # Qualification probability bars
-    qual_rows = []
-    for t in sorted_teams:
-        p_top2  = probs.get(t["team"],{}).get("top2",0)
-        p_third = probs.get(t["team"],{}).get("third",0)
-        p_total = min(100, p_top2 + p_third*0.67)  # ~67% of 3rd place teams qualify
-        bar_color = COLORS["accent"] if p_top2>=50 else (COLORS["gold"] if p_third>=30 else COLORS["text_secondary"])
-        qual_rows.append(html.Div([
-            html.Div(f"{get_flag(t['team'])} {t['team'][:12]}", style={"fontSize":"11px","color":COLORS["text_primary"],"minWidth":"120px"}),
-            html.Div([
-                html.Div(style={"width":f"{p_total}%","backgroundColor":bar_color,"height":"100%","borderRadius":"4px","transition":"width 0.8s ease"}),
-            ], className="qual-bar-wrap", style={"flex":"1","height":"6px","borderRadius":"4px"}),
-            html.Div(f"{p_top2:.0f}%", style={"fontSize":"10px","color":bar_color,"minWidth":"32px","textAlign":"right"}),
-        ], style={"display":"flex","alignItems":"center","gap":"8px","marginBottom":"5px"}))
+    # Qualification status — probability bars while in progress, a plain
+    # factual Advanced/Eliminated readout once the group is actually done.
+    # No more percentages for something that's already 100% decided.
+    if group_done:
+        qual_rows = []
+        for t in sorted_teams:
+            advanced = t["team"] in qualified_teams
+            qual_rows.append(html.Div([
+                html.Div(f"{get_flag(t['team'])} {t['team'][:14]}", style={"fontSize":"11px","color":COLORS["text_primary"],"minWidth":"140px"}),
+                html.Div("✅ Advanced" if advanced else "Eliminated",
+                         style={"fontSize":"11px","fontWeight":"700",
+                                "color": COLORS["accent"] if advanced else COLORS["text_secondary"]}),
+            ], style={"display":"flex","justifyContent":"space-between","alignItems":"center","marginBottom":"6px"}))
+    else:
+        qual_rows = []
+        for t in sorted_teams:
+            p_top2  = probs.get(t["team"],{}).get("top2",0)
+            p_third = probs.get(t["team"],{}).get("third",0)
+            p_total = min(100, p_top2 + p_third*0.67)  # ~67% of 3rd place teams qualify
+            bar_color = COLORS["accent"] if p_top2>=50 else (COLORS["gold"] if p_third>=30 else COLORS["text_secondary"])
+            qual_rows.append(html.Div([
+                html.Div(f"{get_flag(t['team'])} {t['team'][:12]}", style={"fontSize":"11px","color":COLORS["text_primary"],"minWidth":"120px"}),
+                html.Div([
+                    html.Div(style={"width":f"{p_total}%","backgroundColor":bar_color,"height":"100%","borderRadius":"4px","transition":"width 0.8s ease"}),
+                ], className="qual-bar-wrap", style={"flex":"1","height":"6px","borderRadius":"4px"}),
+                html.Div(f"{p_top2:.0f}%", style={"fontSize":"10px","color":bar_color,"minWidth":"32px","textAlign":"right"}),
+            ], style={"display":"flex","alignItems":"center","gap":"8px","marginBottom":"5px"}))
 
     # Header — mirrors standings_row flex layout exactly
-    # Standing rows
-    rows_html = [
-        standings_row(
-            rank,
-            t["team"],
-            get_flag(t["team"]),
-            t["p"],
-            t["w"],
-            t["d"],
-            t["l"],
-            t.get("gf", 0),
-            t.get("ga", 0),
-            t["pts"],
-            qualify=(rank <= 2),
-        )
-        for rank, t in enumerate(sorted_teams, 1)
-    ]
-
-    # Header — matches row flex layout exactly
+    
     header_row = html.Div(
         [
             html.Span(
@@ -263,7 +282,7 @@ def _build_group_card(letter, teams, group_table):
             html.Div(style={"height":"2px","background":f"linear-gradient(90deg,{group_color}80,transparent)","marginBottom":"6px"}),
             html.Span("↑ Top 2 advance · Best 8 third-place teams also qualify",style={"fontSize":"10px","color":COLORS["text_secondary"]}),
         ],style={"marginTop":"8px","marginBottom":"14px"}),
-        html.Div("Qualification probability",style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em","marginBottom":"8px"}),
+        html.Div("Final Result" if group_done else "Qualification probability",style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em","marginBottom":"8px"}),
         ] + qual_rows + [
         html.Div([
             html.Div("Points",style={"fontSize":"10px","color":COLORS["text_secondary"],"textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"12px","marginBottom":"4px"}),
@@ -271,8 +290,11 @@ def _build_group_card(letter, teams, group_table):
         ]),
         ] + [
         html.Div([
-            html.Div("📝 Scenario", style={"fontSize":"10px","color":COLORS["accent2"],"textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"14px","marginBottom":"6px"}),
-            html.Div(_get_scenario_text(letter, sorted_teams, group_table), style={"fontSize":"12px","color":COLORS["text_secondary"],"lineHeight":"1.5"}),
+            html.Div("📝 Scenario" if not group_done else "✅ Result", style={"fontSize":"10px","color":COLORS["accent2"],"textTransform":"uppercase","letterSpacing":"0.08em","marginTop":"14px","marginBottom":"6px"}),
+            html.Div(
+                _get_final_scenario_text(letter, sorted_teams, qualified_teams) if group_done
+                else _get_scenario_text(letter, sorted_teams, group_table),
+                style={"fontSize":"12px","color":COLORS["text_secondary"],"lineHeight":"1.5"}),
         ]),
         ],
         style={"backgroundColor":COLORS["bg_card"],"border":f"1px solid {COLORS['border']}",
@@ -283,9 +305,44 @@ def _build_group_card(letter, teams, group_table):
 def update_groups(_):
     group_table = get_cache().get("groups",{})
     letters = list(WC2026_GROUPS.keys())
+
+    # Determine real qualification state — top 2 per group are locked in
+    # the moment their group finishes; the best-8-third-place rule can only
+    # be resolved once EVERY group has finished (otherwise you'd be
+    # comparing a group that's played 6/6 against one that's only played
+    # 3/6, which isn't a fair "best of" comparison yet).
+    all_complete = True
+    qualified_teams = set()
+    third_place_candidates = []
+    for letter in letters:
+        table_data = group_table.get(f"Group {letter}", {})
+        teams = WC2026_GROUPS[letter]
+        played = sum(t.get("p", 0) for t in table_data.values()) // 2 if table_data else 0
+        if played < 6:
+            all_complete = False
+        sorted_teams = sorted(table_data.values(), key=lambda t: (t["pts"], t.get("gf", 0) - t.get("ga", 0), t.get("gf", 0)), reverse=True) if table_data else []
+        present = {t["team"] for t in sorted_teams}
+        for team in teams:
+            if team not in present:
+                sorted_teams.append({"team": team, "p": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "pts": 0})
+        if len(sorted_teams) >= 2:
+            qualified_teams.add(sorted_teams[0]["team"])
+            qualified_teams.add(sorted_teams[1]["team"])
+        if len(sorted_teams) >= 3:
+            third_place_candidates.append(sorted_teams[2])
+
+    if all_complete and third_place_candidates:
+        best_thirds = sorted(
+            third_place_candidates,
+            key=lambda t: (t.get("pts", 0), t.get("gf", 0) - t.get("ga", 0), t.get("gf", 0)),
+            reverse=True,
+        )
+        for t in best_thirds[:8]:
+            qualified_teams.add(t["team"])
+
     rows = []
     for i in range(0,len(letters),2):
-        pair = [html.Div(_build_group_card(l,WC2026_GROUPS[l],group_table),
+        pair = [html.Div(_build_group_card(l, WC2026_GROUPS[l], group_table, all_complete, qualified_teams),
                          style={"flex":"1","minWidth":"340px"})
                 for l in letters[i:i+2]]
         rows.append(html.Div(pair,className="group-pair",style={"display":"flex","gap":"20px","marginBottom":"20px","flexWrap":"wrap"}))

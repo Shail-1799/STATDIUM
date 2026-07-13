@@ -1,5 +1,5 @@
 from app_instance import app, server
-from components.ui import COLORS, sidebar
+from components.ui import COLORS, sidebar, football_loader
 from data.fetcher import refresh_data, get_cache, refresh_matches
 from pages import (live, groups, bracket, teams, insights, formations,
                    stadiums, leaderboards, confederations,
@@ -26,13 +26,16 @@ app.layout = html.Div(
         sidebar(),
         html.Div(
             [
-                html.Div(
-                    id="page-content",
-                    style={
-                        "minHeight": "calc(100vh - 48px)",
-                        "position": "relative",
-                        "zIndex": "1",
-                    },
+                dcc.Loading(
+                    custom_spinner=football_loader("Loading STATDIUM..."),
+                    children=html.Div(
+                        id="page-content",
+                        style={
+                            "minHeight": "calc(100vh - 48px)",
+                            "position": "relative",
+                            "zIndex": "1",
+                        },
+                    ),
                 ),
                 html.Div(
                     [

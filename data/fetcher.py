@@ -7,14 +7,32 @@ FD free tier: matches, standings, scorers, teams (with crest URLs)
 import requests, json, time, threading, os
 from datetime import datetime, timezone
 
+# Load .env explicitly — don't rely on an IDE's debugger to inject it.
+# A plain `python app.py` in a terminal, a second/leftover process, or
+# running via `flask run` will NOT get VS Code's automatic .env injection
+# (that only applies to Debug/F5 sessions) — which is exactly why the same
+# key could appear "set" in one running process and "not set" in another.
+# This call is a safe no-op in production (Render has no .env file; it uses
+# real dashboard env vars), so it doesn't affect the deployed app at all.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    print(
+        "[STATDIUM] python-dotenv not installed — add it to requirements.txt "
+        "for local .env support (pip install python-dotenv)"
+    )
+
 OPENFOOTBALL_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json"
 FD_BASE = "https://api.football-data.org/v4"
 FD_KEY = os.environ.get("FD_API_KEY", "")
 FD_HEADERS = {"X-Auth-Token": FD_KEY} if FD_KEY else {}
 WC_ID = 2000  # football-data.org WC 2026 competition ID
 
-CACHE_TTL = 60
+CACHE_TTL = 20
 _lock = threading.Lock()
+_refresh_lock = threading.Lock()
 _cache = {
     "matches": [],
     "groups": {},
@@ -204,6 +222,41 @@ def get_flag(name):
     return FLAG_MAP.get(name, "🏳️")
 
 
+# Canonical knockout-round ordering — shared by any page that needs to know
+# "how far has this team gone" (bracket simulator, history heatmap, Wall of
+# Champions). Centralized here so all three agree on what a round name means
+# instead of each page guessing independently.
+KNOCKOUT_ROUND_ORDER = ["R32", "R16", "QF", "SF", "Final"]
+KNOCKOUT_ROUND_LABELS = {
+    "R32": "Round of 32",
+    "R16": "Round of 16",
+    "QF": "Quarter-Finals",
+    "SF": "Semi-Finals",
+    "Final": "Final",
+}
+
+
+def normalize_round(raw):
+    """
+    Map whatever round-name string the feed uses (e.g. 'Round of 16',
+    'Quarterfinal', '8th Finals') to one of KNOCKOUT_ROUND_ORDER. Returns
+    None for group-stage matches or anything unrecognized — callers should
+    treat None as 'not a knockout match' and skip it.
+    """
+    n = (raw or "").lower()
+    if "32" in n:
+        return "R32"
+    if "16" in n:
+        return "R16"
+    if "quarter" in n:
+        return "QF"
+    if "semi" in n:
+        return "SF"
+    if "final" in n:
+        return "Final"
+    return None
+
+
 def get_flag_url(name, width=40):
     code = ISO2_MAP.get(name)
     if not code:
@@ -256,6 +309,43 @@ def get_crest_img(team_name, width=32, style=None):
             className="team-crest",
         )
     return get_flag_img(team_name, width=width, style=style)
+
+
+def ensure_fresh(max_age_seconds=None):
+    """
+    Pull-based freshness guarantee. Call this from Dash callbacks (e.g. right
+    before reading get_cache()) instead of relying solely on the background
+    APScheduler job to keep data current.
+
+    WHY THIS EXISTS: on hosts like Render's free tier, the entire process
+    (including any background scheduler thread) gets killed after ~15 min of
+    no HTTP traffic and only restarts on the next request. A background job
+    literally cannot run while the process is dead — no amount of tuning the
+    scheduler interval fixes that. This function instead ties freshness to
+    real traffic: as long as someone has the page open and polling (which is
+    also the only time the process is even alive on a free tier), the cache
+    gets refreshed at most `max_age_seconds` old, guaranteed.
+    """
+    ttl = max_age_seconds if max_age_seconds is not None else CACHE_TTL
+    with _lock:
+        last = _cache.get("last_updated")
+    is_stale = True
+    if last:
+        try:
+            last_dt = datetime.fromisoformat(last)
+            is_stale = (datetime.now(timezone.utc) - last_dt).total_seconds() > ttl
+        except Exception:
+            is_stale = True
+    if not is_stale:
+        return
+    # Non-blocking: if another request already triggered a refresh, don't
+    # pile on with duplicate FD calls from every open browser tab — just
+    # serve what's currently cached.
+    if _refresh_lock.acquire(blocking=False):
+        try:
+            refresh_matches()
+        finally:
+            _refresh_lock.release()
 
 
 # ── openfootball ────────────────────────────────────────────────────────────
@@ -403,6 +493,7 @@ def _update_group_table(table, group, t1, t2, g1, g2):
 # ── football-data.org ──────────────────────────────────────────────────────
 def fetch_fd_matches():
     if not FD_KEY:
+        print("[FD matches] SKIPPED — FD_API_KEY is not set in the environment")
         return []
     try:
         r = requests.get(
@@ -410,8 +501,11 @@ def fetch_fd_matches():
         )
         if r.status_code == 200:
             return r.json().get("matches", [])
+        # Don't swallow this silently — a bad key, rate limit, or wrong
+        # competition ID all look identical to "no new data" unless logged.
+        print(f"[FD matches] HTTP {r.status_code}: {r.text[:300]}")
     except Exception as e:
-        print(f"[FD matches] {e}")
+        print(f"[FD matches] EXCEPTION: {e}")
     return []
 
 
@@ -426,8 +520,9 @@ def fetch_fd_scorers():
         )
         if r.status_code == 200:
             return r.json().get("scorers", [])
+        print(f"[FD scorers] HTTP {r.status_code}: {r.text[:300]}")
     except Exception as e:
-        print(f"[FD scorers] {e}")
+        print(f"[FD scorers] EXCEPTION: {e}")
     return []
 
 
@@ -468,6 +563,8 @@ def fetch_fd_teams():
                 if crest_map:
                     print(f"[FD teams] {len(crest_map)} crests from comp {comp_id}")
                     return crest_map
+            else:
+                print(f"[FD teams comp {comp_id}] HTTP {r.status_code}: {r.text[:200]}")
         except Exception as e:
             print(f"[FD teams comp {comp_id}] {e}")
 
@@ -622,7 +719,9 @@ def refresh_matches():
             }
         )
     print(
-        f"[STATDIUM] fast refresh {datetime.now().strftime('%H:%M:%S')} · {len(matches)} matches"
+        f"[STATDIUM] fast refresh {datetime.now().strftime('%H:%M:%S')} · "
+        f"{len(matches)} matches · FD contributed {len(fd_matches)} fixtures"
+        + ("" if FD_KEY else " · FD_API_KEY not set!")
     )
 
 

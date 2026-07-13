@@ -7,7 +7,7 @@ from dash import html, dcc, Input, Output
 import plotly.graph_objects as go
 from app_instance import app
 from components.ui import page_guide, COLORS, section_header, page_wrapper, get_flag_img
-from data.fetcher import WC2026_GROUPS, get_flag, FIFA_RANKINGS
+from data.fetcher import WC2026_GROUPS, get_flag, FIFA_RANKINGS, get_cache, normalize_round, KNOCKOUT_ROUND_ORDER
 
 # ── Historical WC data: {team: {year: result}} ────────────────────────────
 # W=Winner, F=Final, SF=Semi, QF=Quarter, R16=Last16, GS=Group Stage, DNQ=Did not qualify
@@ -53,7 +53,14 @@ RESULT_COLOR = {
 RESULT_LABEL = {"W":"🏆 Champion","F":"🥈 Runner-up","SF":"🥉 Semi-Final",
                 "QF":"Quarter-Final","R16":"Round of 16","GS":"Group Stage","DNQ":"Did Not Qualify"}
 
-ALL_YEARS = list(range(1930, 2023, 4))
+# Every year a World Cup has actually been held. NOT a range(1930,2023,4) —
+# that formula silently includes 1942 and 1946, which were cancelled for
+# WWII. Tagging those "Did Not Qualify" for every team was wrong: there was
+# no tournament to qualify for. A real fan would catch that immediately.
+ALL_YEARS = [
+    1930, 1934, 1938, 1950, 1954, 1958, 1962, 1966, 1970, 1974, 1978, 1982,
+    1986, 1990, 1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022, 2026,
+]
 
 # ── All-time H2H data (embedded, key matchups) ────────────────────────────
 H2H_DATA = {
@@ -105,6 +112,7 @@ def layout():
 
     return html.Div(
         [
+            dcc.Interval(id="hist-interval", interval=60000, n_intervals=0),
             page_wrapper(
                 [
                     GUIDE,
@@ -112,7 +120,7 @@ def layout():
                     # ── Section 1: Historical heatmap ──
                     section_header(
                         "📜 World Cup History",
-                        "Every team's tournament journey from 1930 to 2022",
+                        f"Every team's tournament journey from {ALL_YEARS[0]} to {ALL_YEARS[-1]}",
                         accent_color=COLORS["gold"],
                     ),
                     html.Div(
@@ -257,22 +265,62 @@ def layout():
     )
 
 
-@app.callback(Output("hist-heatmap","children"), Input("hist-team-filter","value"))
-def update_heatmap(selected):
+def _team_2026_result(team, matches):
+    """
+    This team's LIVE 2026 result — the furthest knockout round they've
+    reached so far, derived directly from real match data. Matches the
+    existing historical convention: the tag means "furthest stage reached",
+    not "won that specific match" (e.g. a team that lost the Quarter-Final
+    is still tagged QF, same as Brazil's 2006 entry in WC_HISTORY above).
+    This stays accurate automatically as the tournament progresses and
+    resolves to the true final result the moment the Final is played —
+    zero manual updates ever required going forward.
+    """
+    furthest, furthest_match = None, None
+    for m in matches:
+        r = normalize_round(m.get("round", ""))
+        if not r:
+            continue
+        if m.get("home_team") == team or m.get("away_team") == team:
+            if furthest is None or KNOCKOUT_ROUND_ORDER.index(r) > KNOCKOUT_ROUND_ORDER.index(furthest):
+                furthest, furthest_match = r, m
+    if furthest is None:
+        return "GS"  # eliminated in (or still only played) the group stage
+    if furthest == "Final":
+        m = furthest_match
+        if m.get("status") == "FINISHED" and m.get("home_score") is not None:
+            hs, as_ = m["home_score"], m["away_score"]
+            home, away = m.get("home_team"), m.get("away_team")
+            winner = home if hs > as_ else away
+            return "W" if winner == team else "F"
+        return "F"  # reached the Final, result pending
+    return furthest
+
+
+@app.callback(Output("hist-heatmap","children"), Input("hist-team-filter","value"), Input("hist-interval","n_intervals"))
+def update_heatmap(selected, _n=0):
     if not selected: selected = list(WC_HISTORY.keys())[:12]
     selected = selected[:20]
+
+    matches = get_cache().get("matches", [])
+    wc2026_teams = {t for teams in WC2026_GROUPS.values() for t in teams}
 
     z, text, y_labels = [], [], []
     for team in selected:
         row, trow = [], []
         hist = WC_HISTORY.get(team, {})
+        wins = sum(1 for v in hist.values() if v == "W")
         for yr in ALL_YEARS:
-            r = hist.get(yr, "DNQ")
+            if yr == 2026:
+                r = _team_2026_result(team, matches) if team in wc2026_teams else "DNQ"
+                if r == "W":
+                    wins += 1
+            else:
+                r = hist.get(yr, "DNQ")
             row.append(RESULT_RANK.get(r, 0))
             trow.append(RESULT_LABEL.get(r, "DNQ"))
         z.append(row)
         text.append(trow)
-        wins = sum(1 for v in hist.values() if v=="W")
         y_labels.append(f"{get_flag(team)} {team}" + (f" 🏆×{wins}" if wins else ""))
 
     fig = go.Figure(go.Heatmap(

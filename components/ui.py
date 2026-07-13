@@ -394,3 +394,33 @@ def page_guide(title, bullets, accent_color=None):
         "borderRadius":"10px","marginBottom":"20px",
         "fontSize":"12px",
     })
+
+
+def football_loader(text="Loading..."):
+    """
+    Reusable bouncing-football loading indicator — generic across every
+    page. Pass it as the custom_spinner for any dcc.Loading that wraps a
+    page's dynamic content:
+
+        dcc.Loading(
+            custom_spinner=football_loader("Loading leaderboards..."),
+            children=html.Div(id="leaderboards-content"),
+        )
+
+    Works for both the "whole page on first load" case (wrap the page's
+    top-level content Div) and "just this section while it refreshes"
+    (wrap only the specific Div that a periodic Interval re-populates).
+    """
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Span("⚽", className="football-bounce"),
+                    html.Div(className="football-bounce-shadow"),
+                ],
+                className="football-bounce-track",
+            ),
+            html.Div(text, className="football-loader-text"),
+        ],
+        className="football-loader-wrap",
+    )

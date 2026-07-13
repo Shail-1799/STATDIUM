@@ -40,11 +40,13 @@ def update_leaderboard(_):
     played_count = len([m for m in matches if m["status"] == "FINISHED"])
 
     if not scorers:
-        return html.Div([
-            html.Div("⚽", style={"fontSize":"48px","textAlign":"center","marginBottom":"12px","marginTop":"40px"}),
-            html.Div("No scorer data yet — matches in progress",
-                     style={"fontSize":"14px","color":COLORS["text_secondary"],"textAlign":"center"}),
-        ])
+        return dmc.LoadingOverlay(
+            html.Div([
+                html.Div("⚽", style={"fontSize":"48px","textAlign":"center","marginBottom":"12px","marginTop":"40px"}),
+                html.Div("No scorer data yet — matches in progress",
+                         style={"fontSize":"14px","color":COLORS["text_secondary"],"textAlign":"center"}),
+            ])
+        )
 
     return _build_golden_boot(scorers, played_count)
 

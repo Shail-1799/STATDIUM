@@ -2,7 +2,7 @@ from dash import html, dcc, Input, Output
 import plotly.graph_objects as go
 from app_instance import app
 from components.ui import page_guide, COLORS, section_header, page_wrapper, get_flag_img
-from data.fetcher import get_cache, WC2026_GROUPS, get_flag, FIFA_RANKINGS
+from data.fetcher import get_cache, WC2026_GROUPS, get_flag, FIFA_RANKINGS, normalize_round
 
 ISO3_MAP = {
     "Argentina":"ARG","Australia":"AUS","Austria":"AUT","Belgium":"BEL",
@@ -160,11 +160,31 @@ def update_insights(_):
         "England":"EN","West Germany":"DE","Argentina":"AR","Germany":"DE",
         "France":"FR","Spain":"ES",
     }
+
+    # Only add a 2026 entry once the Final has ACTUALLY been played — never
+    # fabricate a champion. This is derived live from real match data, so
+    # the Wall of Champions completes itself automatically the moment the
+    # Final finishes, with no manual code edit ever needed.
+    wc_winners_display = list(WC_WINNERS)
+    final_matches = [m for m in matches if normalize_round(m.get("round","")) == "Final"]
+    if final_matches:
+        fm = final_matches[0]
+        if fm.get("status") == "FINISHED" and fm.get("home_score") is not None:
+            hs, as_ = fm["home_score"], fm["away_score"]
+            home, away = fm.get("home_team"), fm.get("away_team")
+            if hs != as_:  # a Final tied on the data we have (pre-penalties) can't declare a winner
+                champion_2026 = home if hs > as_ else away
+                wc_winners_display.append(("2026", get_flag(champion_2026), champion_2026))
+
+    latest_year = wc_winners_display[-1][0]
+
     champions_html = []
-    for year, flag, team in WC_WINNERS:
+    for year, flag, team in wc_winners_display:
         short = ISO2_DISPLAY.get(team, team[:2].upper())
-        # Highlight current champion (2022)
-        is_current = year == "2022"
+        # Highlight whichever year is actually the most recent — never
+        # hardcoded, so this keeps working correctly through 2026 and every
+        # World Cup after it too.
+        is_current = year == latest_year
         border_style = f"1px solid rgba(255,215,0,0.6)" if is_current else f"1px solid rgba(255,215,0,0.15)"
         bg_style = "rgba(255,215,0,0.08)" if is_current else "var(--card-bg)"
         champions_html.append(html.Div([

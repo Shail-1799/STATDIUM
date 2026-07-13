@@ -20,6 +20,7 @@ from data.fetcher import (
     WC2026_GROUPS,
     FIFA_RANKINGS,
     get_flag,
+    ensure_fresh,
 )
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -163,20 +164,9 @@ def update_favorite_tracker(fav_data, _):
         [
             html.Div(
                 [
+                    html.Span("⭐ ", style={"fontSize": "14px"}),
                     html.Span(
-                        "⭐ Following",
-                        style={
-                            "fontSize": "12px",
-                            "fontWeight": "700",
-                            "color": COLORS["gold"],
-                        },
-                    ),
-                    html.Span(
-                        get_flag_img(fav, width=16),
-                        style={"marginRight": "5px", "marginLeft": "10px"},
-                    ),
-                    html.Span(
-                        f"{fav}",
+                        f"Following {get_flag(fav)} {fav}",
                         style={
                             "fontSize": "12px",
                             "fontWeight": "700",
@@ -214,6 +204,7 @@ def update_favorite_tracker(fav_data, _):
     Output("goal-ticker-bar", "children"), Input("live-interval", "n_intervals")
 )
 def update_ticker(_):
+    ensure_fresh()
     matches = get_cache()["matches"]
     return goal_ticker(matches)
 
@@ -222,6 +213,7 @@ def update_ticker(_):
     Output("hero-stat-strip", "children"), Input("live-interval", "n_intervals")
 )
 def update_hero_strip(_):
+    ensure_fresh()
     cache = get_cache()
     matches = cache["matches"]
     finished = [m for m in matches if m["status"] == "FINISHED"]
@@ -284,6 +276,7 @@ def update_hero_strip(_):
     Output("live-stats-bar", "children"), Input("live-interval", "n_intervals")
 )
 def update_stats_bar(_):
+    ensure_fresh()
     cache = get_cache()
     matches = cache["matches"]
     finished = [m for m in matches if m["status"] == "FINISHED"]
@@ -335,6 +328,7 @@ def update_stats_bar(_):
     Output("today-matches", "children"), Input("live-interval", "n_intervals")
 )
 def update_today(_):
+    ensure_fresh()
     live_now = get_matches(status="LIVE")
     today = get_today_matches()
     seen = {m["id"] for m in live_now}
@@ -437,17 +431,27 @@ def _grouped_matches_desc(matches, title, subtitle):
     Output("recent-matches", "children"), Input("live-interval", "n_intervals")
 )
 def update_recent(_):
+    ensure_fresh()
     from datetime import datetime, timezone, timedelta
 
     all_recent = get_recent_matches(50)
     if not all_recent:
         return html.Div()
-    # Keep only matches from the last 3 days
+    # Keep only matches from the last 3 days — no fallback to older matches,
+    # since silently showing e.g. a 10-day-old result under a "Last 3 days"
+    # label is exactly the kind of mislabeling that caused confusion before.
     cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
     recent = [m for m in all_recent if m.get("date", "") >= cutoff]
     if not recent:
-        recent = all_recent[:10]  # fallback: show last 10 if nothing in 3 days
-    # Sort newest date first inside _grouped_matches (pass reverse=True)
+        return html.Div(
+            [
+                section_header("Recent Results", "Last 3 days of results"),
+                html.Div(
+                    "No completed matches in the last 3 days",
+                    style={"color": COLORS["text_secondary"], "padding": "20px"},
+                ),
+            ]
+        )
     return _grouped_matches_desc(recent, "Recent Results", "Last 3 days of results")
 
 
@@ -455,6 +459,7 @@ def update_recent(_):
     Output("upcoming-matches", "children"), Input("live-interval", "n_intervals")
 )
 def update_upcoming(_):
+    ensure_fresh()
     upcoming = get_upcoming_matches(8)
     if not upcoming:
         return html.Div(
@@ -543,6 +548,7 @@ def _build_ai_preview(match):
     Output("matches-timeline", "children"), Input("live-interval", "n_intervals")
 )
 def update_timeline(_):
+    ensure_fresh()
     daily_goals = defaultdict(int)
     daily_matches = defaultdict(int)
     for m in get_cache()["matches"]:
@@ -582,7 +588,12 @@ def update_timeline(_):
         height=300,
         showlegend=True,
         legend=dict(
-            orientation="h", x=0.5, xanchor="center", y=1.15, font=dict(size=10), bgcolor="rgba(0,0,0,0)"
+            orientation="h",
+            x=0.5,
+            xanchor="center",
+            y=1.15,
+            font=dict(size=10),
+            bgcolor="rgba(0,0,0,0)",
         ),
         xaxis=dict(
             showgrid=False,
@@ -619,6 +630,7 @@ def update_timeline(_):
 )
 def update_full_timeline(_):
     """Horizontal scrollable match timeline grouped by date"""
+    ensure_fresh()
     matches = get_cache()["matches"]
     by_date = defaultdict(list)
     for m in matches:
@@ -626,7 +638,9 @@ def update_full_timeline(_):
     dates = sorted(by_date.keys(), reverse=True)  # show ALL dates, no artificial cap
     if not dates:
         return html.Div()
-    dates = [d for d in dates if d < datetime.now(timezone.utc).strftime("%Y-%m-%d")]  # only past dates for completed matches
+    dates = [
+        d for d in dates if d < datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    ]  # only past dates for completed matches
     date_cols = []
     for d in dates:
         day_matches = by_date[d]

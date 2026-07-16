@@ -1,5 +1,5 @@
 from app_instance import app, server
-from components.ui import COLORS, sidebar, football_loader
+from components.ui import COLORS, sidebar, football_loader, football_loader2
 from data.fetcher import refresh_data, get_cache, refresh_matches
 from pages import (
     live,
@@ -41,7 +41,7 @@ app.layout = html.Div(
         html.Div(
             [
                 dcc.Loading(
-                    custom_spinner=football_loader("Kicking Off..."),
+                    custom_spinner=football_loader2(),
                     children=html.Div(
                         id="page-content",
                         style={
@@ -197,6 +197,27 @@ def update_sidebar_progress(_):
         html.Span(f"{played}/{total} matches · {pct}%", className="sidebar-label",
                   style={"fontSize":"10px","color":COLORS["accent"]}),
     ])
+
+LOADER_LABELS = [
+    "Kicking Off...",
+    "Opening the Stadium...",
+    "Gathering the Teams...",
+    "Syncing Live Match Data...",
+    "Crunching Match Statistics...",
+    "Polishing the Trophy...",
+    "Mic Check for Commentary...",
+    "Raising the Flags...",
+    "Filling the Stands...",
+    "Kickoff is Moments Away...",
+]
+
+
+@app.callback(
+    Output("football-loader-label", "children"),
+    Input("loader-interval", "n_intervals"),
+)
+def update_loader(n):
+    return LOADER_LABELS[n % len(LOADER_LABELS)]
 
 
 if __name__ == "__main__":

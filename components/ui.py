@@ -493,3 +493,29 @@ def football_loader(text="Loading..."):
         ],
         className="football-loader-wrap",
     )
+
+def football_loader2(
+    interval=1800,
+):
+    
+    return html.Div(
+        [
+            dcc.Interval(
+                id="loader-interval",
+                interval=interval,
+                n_intervals=0,
+            ),
+            html.Div(
+                [
+                    html.Span("⚽", className="football-bounce"),
+                    html.Div(className="football-bounce-shadow"),
+                ],
+                className="football-bounce-track",
+            ),
+            html.Div(
+                id="football-loader-label",
+                className="football-loader-text",            
+            ),
+        ],
+        className="football-loader-wrap",
+    )

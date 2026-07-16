@@ -1,10 +1,24 @@
 from app_instance import app, server
 from components.ui import COLORS, sidebar, football_loader
 from data.fetcher import refresh_data, get_cache, refresh_matches
-from pages import (live, groups, bracket, teams, insights, formations,
-                   stadiums, leaderboards, confederations,
-                   scenario, tactical_dna, animated_bracket, history,
-                   predictor)
+from pages import (
+    live,
+    groups,
+    bracket,
+    teams,
+    insights,
+    formations,
+    stadiums,
+    leaderboards,
+    confederations,
+    scenario,
+    tactical_dna,
+    animated_bracket,
+    history,
+    predictor,
+    about,
+    trivia,
+)
 from pages.match_detail import modal_shell
 from dash import html, dcc, Input, Output
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -154,6 +168,8 @@ ROUTES = {
     "/simulator": animated_bracket.layout,
     "/history": history.layout,
     "/predictor": predictor.layout,
+    "/about": about.layout,
+    "/trivia": trivia.layout,
 }
 
 @app.callback(Output("page-content","children"), Input("url","pathname"))

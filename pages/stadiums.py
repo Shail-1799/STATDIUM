@@ -73,7 +73,6 @@ def update_stadiums(_):
     cache = get_cache()
     matches = cache.get("matches", [])
     upcoming = [m for m in matches if m.get("status") in ("SCHEDULED", "TIMED", "LIVE")]
-    print(upcoming[0])
 
     # Batch weather
     weather = {}

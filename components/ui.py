@@ -15,30 +15,99 @@ COLORS = {
 }
 
 SIDEBAR_SECTIONS = [
-    {"label":"OVERVIEW","items":[
-        {"label":"Live","icon":"⚡","href":"/","id":"nav-live"},
-        {"label":"Groups","icon":"📊","href":"/groups","id":"nav-groups"},
-    ]},
-    {"label":"ANALYTICS","items":[
-        {"label":"Bracket","icon":"🏆","href":"/bracket","id":"nav-bracket"},
-        {"label":"Teams","icon":"👥","href":"/teams","id":"nav-teams"},
-        {"label":"Leaderboards","icon":"📈","href":"/leaderboards","id":"nav-leaderboards"},
-        {"label":"Insights","icon":"🌍","href":"/insights","id":"nav-insights"},
-        {"label":"History","icon":"📜","href":"/history","id":"nav-history"},
-    ]},
-    {"label":"INTERACTIVE","items":[
-        {"label":"Predictor","icon":"🎯","href":"/predictor","id":"nav-predictor"},
-        {"label":"What If","icon":"🔮","href":"/scenario","id":"nav-scenario"},
-        {"label":"Simulator","icon":"🎬","href":"/simulator","id":"nav-simulator"},
-        {"label":"Tactical DNA","icon":"🧬","href":"/tactical-dna","id":"nav-tactical-dna"},
-    ]},
-    {"label":"MATCH CENTRE","items":[
-        {"label":"Formations","icon":"⚽","href":"/formations","id":"nav-formations"},
-        {"label":"Stadiums & Clocks","icon":"🏟️","href":"/stadiums","id":"nav-stadiums"},
-    ]},
+    {
+        "label": "OVERVIEW",
+        "items": [
+            {"label": "Live", "icon": "⚡", "href": "/", "id": "nav-live"},
+            {"label": "Groups", "icon": "📊", "href": "/groups", "id": "nav-groups"},
+        ],
+    },
+    {
+        "label": "ANALYTICS",
+        "items": [
+            {"label": "Bracket", "icon": "🏆", "href": "/bracket", "id": "nav-bracket"},
+            {"label": "Teams", "icon": "👥", "href": "/teams", "id": "nav-teams"},
+            {
+                "label": "Leaderboards",
+                "icon": "📈",
+                "href": "/leaderboards",
+                "id": "nav-leaderboards",
+            },
+            {
+                "label": "Insights",
+                "icon": "🌍",
+                "href": "/insights",
+                "id": "nav-insights",
+            },
+            {"label": "History", "icon": "📜", "href": "/history", "id": "nav-history"},
+        ],
+    },
+    {
+        "label": "INTERACTIVE",
+        "items": [
+            {
+                "label": "Predictor",
+                "icon": "🎯",
+                "href": "/predictor",
+                "id": "nav-predictor",
+            },
+            {
+                "label": "What If",
+                "icon": "🔮",
+                "href": "/scenario",
+                "id": "nav-scenario",
+            },
+            {
+                "label": "Simulator",
+                "icon": "🎬",
+                "href": "/simulator",
+                "id": "nav-simulator",
+            },
+            {
+                "label": "Tactical DNA",
+                "icon": "🧬",
+                "href": "/tactical-dna",
+                "id": "nav-tactical-dna",
+            },
+        ],
+    },
+    {
+        "label": "MATCH CENTRE",
+        "items": [
+            {
+                "label": "Formations",
+                "icon": "⚽",
+                "href": "/formations",
+                "id": "nav-formations",
+            },
+            {
+                "label": "Stadiums & Clocks",
+                "icon": "🏟️",
+                "href": "/stadiums",
+                "id": "nav-stadiums",
+            },
+        ],
+    },
     # {"label":"ELO INTELLIGENCE","items":[
     #     {"label":"Confederations","icon":"🌐","href":"/confederations","id":"nav-confederations"},
     # ]},
+    {
+        "label": "EXPLORE",
+        "items": [
+            {
+                "label": "Trivia",
+                "icon": "💡",
+                "href": "/trivia",
+                "id": "nav-trivia",
+            },
+            {
+                "label": "About",
+                "icon": "📚",
+                "href": "/about",
+                "id": "nav-about",
+            },
+        ],
+    },
 ]
 
 # ── STATDIUM SVG wordmark ──────────────────────────────────────────────────

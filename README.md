@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="assets/og_thumbnail.svg" width="100%" alt="STATDIUM — FIFA World Cup 2026 Analytics"/>
-
 # ⚽ STATDIUM
 ### FIFA World Cup 2026 — Live Analytics Platform
 
@@ -245,8 +243,6 @@ Full methodology with worked examples → [About page](https://statdium-fifa-wor
 > Monte Carlo simulations to personal match predictions,
 > all in one dark, fast, broadcast-quality Dash app."*
 
-Built with ❤️ and ⚽ using [Plotly Dash](https://dash.plotly.com)
-
 *Plotly features used:* Choropleth maps · Scatterpolar radar · Sankey diagrams · Grouped bar charts · Scatter plots · Heatmaps · Line + bar combo charts · Funnel charts · Custom SVG iframes · dcc.Store (localStorage) · Pattern-matching callbacks · APScheduler integration
 
 ---
@@ -255,6 +251,6 @@ Built with ❤️ and ⚽ using [Plotly Dash](https://dash.plotly.com)
 
 **[🔴 Live App](https://statdium-fifa-world-cup-2026.onrender.com) · [💻 GitHub](https://github.com/Shail-1799/STATDIUM)**
 
-Made with ❤️ · Powered by Plotly Dash · 100% Free Data
+Made with ❤️ · Powered by [Plotly Dash](https://dash.plotly.com) · 100% Free Data
 
 </div>

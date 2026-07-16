@@ -41,7 +41,7 @@ app.layout = html.Div(
         html.Div(
             [
                 dcc.Loading(
-                    custom_spinner=football_loader("Loading STATDIUM..."),
+                    custom_spinner=football_loader("Kicking Off..."),
                     children=html.Div(
                         id="page-content",
                         style={

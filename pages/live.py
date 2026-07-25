@@ -8,22 +8,142 @@ from components.ui import (
     match_scorecard,
     stat_pill,
     page_wrapper,
-    goal_ticker,
     get_flag_img,
 )
 from data.fetcher import (
-    get_today_matches,
     get_recent_matches,
-    get_upcoming_matches,
     get_cache,
-    get_matches,
     WC2026_GROUPS,
     FIFA_RANKINGS,
     get_flag,
+    normalize_round,
     ensure_fresh,
 )
 from datetime import datetime, timezone
 from collections import defaultdict
+
+# 2026 FIFA World Cup Champions — static source of truth. This is guaranteed
+# correct regardless of any data-feed lag (the same lag issue that caused
+# problems earlier in the tournament). Live match data below only ADDS
+# supplementary detail (final score, runner-up) when available — it never
+# gates or overrides this fact.
+CHAMPION_TEAM = "Spain"
+
+# Optionally pin specific match "id" values here (see each match's "id"
+# field, formatted "date_hometeam_awayteam") to always feature them at the
+# top of Top Moments regardless of the computed buzz score — for moments
+# pure stats can't capture, like an iconic goal or a VAR controversy.
+FEATURED_MATCH_IDS = []
+
+
+# Scattered positions/delays for the twinkling sparkles on the champion
+# card — hand-placed rather than randomized so they read as deliberate
+# design, not noise.
+_SPARKLE_SPOTS = [
+    {"top": "10%", "left": "8%", "delay": "0s", "size": "16px"},
+    {"top": "18%", "left": "88%", "delay": "0.35s", "size": "20px"},
+    {"top": "62%", "left": "5%", "delay": "0.7s", "size": "14px"},
+    {"top": "72%", "left": "92%", "delay": "1.0s", "size": "18px"},
+    {"top": "8%", "left": "48%", "delay": "0.5s", "size": "13px"},
+    {"top": "86%", "left": "44%", "delay": "0.85s", "size": "15px"},
+    {"top": "42%", "left": "95%", "delay": "1.2s", "size": "12px"},
+    {"top": "40%", "left": "3%", "delay": "0.2s", "size": "12px"},
+]
+
+
+def _sparkles():
+    return [
+        html.Span(
+            "✨",
+            className="champion-sparkle",
+            style={
+                "top": s["top"],
+                "left": s["left"],
+                "fontSize": s["size"],
+                "animationDelay": s["delay"],
+            },
+        )
+        for s in _SPARKLE_SPOTS
+    ]
+
+
+def _champion_banner():
+    """
+    Static champion fact (always correct) + a live-derived detail line
+    (Final score, runner-up) when the real match data is available. If the
+    data feed is stale or the Final match isn't found for any reason, the
+    banner still renders correctly — it just skips the extra detail line.
+    """
+    detail = None
+    try:
+        matches = get_cache().get("matches", [])
+        final_matches = [
+            m for m in matches if normalize_round(m.get("round", "")) == "Final"
+        ]
+        if final_matches:
+            fm = final_matches[0]
+            if fm.get("status") == "FINISHED" and fm.get("home_score") is not None:
+                hs, as_ = fm["home_score"], fm["away_score"]
+                home, away = fm.get("home_team"), fm.get("away_team")
+                winner = home if hs > as_ else away
+                if winner == CHAMPION_TEAM:
+                    runner_up = away if winner == home else home
+                    score = f"{hs}–{as_}" if home == CHAMPION_TEAM else f"{as_}–{hs}"
+                    detail = (
+                        f"Beat {get_flag(runner_up)} {runner_up} {score} in the Final"
+                    )
+    except Exception:
+        pass  # static banner below still renders regardless
+
+    content = [
+        html.Div("🏆", style={"fontSize": "56px", "textAlign": "center"}),
+        html.Div(
+            f"{get_flag(CHAMPION_TEAM)} {CHAMPION_TEAM}",
+            style={
+                "fontSize": "28px",
+                "fontWeight": "900",
+                "color": COLORS["gold"],
+                "textAlign": "center",
+                "marginTop": "8px",
+            },
+        ),
+        html.Div(
+            "2026 FIFA WORLD CUP CHAMPIONS",
+            style={
+                "fontSize": "12px",
+                "fontWeight": "700",
+                "color": COLORS["text_secondary"],
+                "textAlign": "center",
+                "letterSpacing": "0.1em",
+                "marginTop": "4px",
+            },
+        ),
+    ]
+    if detail:
+        content.append(
+            html.Div(
+                detail,
+                style={
+                    "fontSize": "13px",
+                    "color": COLORS["text_secondary"],
+                    "textAlign": "center",
+                    "marginTop": "10px",
+                },
+            )
+        )
+
+    return html.Div(
+        _sparkles()
+        + [html.Div(content, style={"position": "relative", "zIndex": "3"})],
+        className="champion-banner glow-card",
+        style={
+            "background": "rgba(255,215,0,0.08)",
+            "border": f"2px solid {COLORS['gold']}66",
+            "borderRadius": "16px",
+            "padding": "28px 20px",
+            "marginBottom": "20px",
+        },
+    )
 
 
 def _hero():
@@ -32,7 +152,7 @@ def _hero():
         [
             # Eyebrow
             html.Div(
-                "🏆  FIFA WORLD CUP 2026  ·  USA · CANADA · MEXICO",
+                "🏆  FIFA WORLD CUP 2026 · FINAL RESULTS  ·  USA · CANADA · MEXICO",
                 className="hero-eyebrow",
             ),
             # Big title
@@ -44,26 +164,27 @@ def _hero():
                 className="hero-title",
             ),
             html.Div(
-                "Live analytics · Elo intelligence · Match simulations · Historical data",
+                "Final results · Top moments · Complete tournament history",
                 className="hero-sub",
             ),
-            # Live stat strip (populated by callback)
+            # Live stat strip — moved above the champion card
             html.Div(id="hero-stat-strip"),
+            _champion_banner(),
         ],
         className="hero-wrap",
     )
 
 
 GUIDE = page_guide(
-    "Live Dashboard",
+    "Final Results",
     [
         (
-            "⚡",
-            "Auto-refreshes every 20 seconds — all data is live from openfootball + football-data.org.",
+            "🏆",
+            "Spain are the 2026 FIFA World Cup Champions — see the Final result above and the full tournament recap below.",
         ),
         (
-            "⭐",
-            "Go to Teams page to follow a team — their next match pins to the top of this page.",
+            "🎬",
+            "Top Moments highlights the tournament's most memorable matches — high-scoring games, big upsets, and knockout-stage drama.",
         ),
         (
             "📅",
@@ -71,11 +192,11 @@ GUIDE = page_guide(
         ),
         (
             "📊",
-            "The stats bar (top) shows total matches, goals, live count and average goals per match.",
+            "The stats bar (top) shows total matches, goals, and average goals per match across the whole tournament.",
         ),
         (
             "📈",
-            "Goals Timeline (bottom) shows goals scored per day with a rolling average line.",
+            "Goals Timeline and Match Timeline (bottom) cover every match day of the tournament, start to finish.",
         ),
     ],
     accent_color=COLORS["accent"],
@@ -86,37 +207,13 @@ def layout():
     return html.Div(
         [
             dcc.Interval(id="live-interval", interval=20000, n_intervals=0),
-            html.Div(id="goal-ticker-bar"),
             _hero(),
             page_wrapper(
                 [
                     GUIDE,
                     html.Div(id="favorite-tracker", style={"marginBottom": "16px"}),
                     html.Div(id="live-stats-bar", style={"marginBottom": "24px"}),
-                    html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.Div(id="today-matches"),
-                                    html.Div(
-                                        id="recent-matches", style={"marginTop": "24px"}
-                                    ),
-                                ],
-                                style={"flex": "1.2", "minWidth": "300px"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Div(id="upcoming-matches"),
-                                    # html.Div(
-                                    #     id="matches-timeline",
-                                    #     style={"marginTop": "24px"},
-                                    # ),
-                                ],
-                                style={"flex": "1", "minWidth": "280px"},
-                            ),
-                        ],
-                        style={"display": "flex", "gap": "24px", "flexWrap": "wrap"},
-                    ),
+                    html.Div(id="top-moments"),
                     html.Div(
                         id="matches-timeline",
                         style={"marginTop": "24px"},
@@ -134,6 +231,7 @@ def layout():
     Input("live-interval", "n_intervals"),
 )
 def update_favorite_tracker(fav_data, _):
+    ensure_fresh()
     fav = (fav_data or {}).get("team")
     if not fav:
         return html.Div()
@@ -201,15 +299,6 @@ def update_favorite_tracker(fav_data, _):
 
 
 @app.callback(
-    Output("goal-ticker-bar", "children"), Input("live-interval", "n_intervals")
-)
-def update_ticker(_):
-    ensure_fresh()
-    matches = get_cache()["matches"]
-    return goal_ticker(matches)
-
-
-@app.callback(
     Output("hero-stat-strip", "children"), Input("live-interval", "n_intervals")
 )
 def update_hero_strip(_):
@@ -217,7 +306,6 @@ def update_hero_strip(_):
     cache = get_cache()
     matches = cache["matches"]
     finished = [m for m in matches if m["status"] == "FINISHED"]
-    live_now = [m for m in matches if m["status"] == "LIVE"]
     goals = sum(
         (m.get("home_score") or 0) + (m.get("away_score") or 0) for m in finished
     )
@@ -242,7 +330,6 @@ def update_hero_strip(_):
         [
             stat(len(matches), "MATCHES"),
             stat(len(finished), "PLAYED"),
-            stat(len(live_now) or 0, "LIVE NOW"),
             stat(goals, "GOALS"),
             stat(f"{round(goals/max(1,len(finished)),2)}", "AVG/MATCH"),
             html.Div(
@@ -280,8 +367,6 @@ def update_stats_bar(_):
     cache = get_cache()
     matches = cache["matches"]
     finished = [m for m in matches if m["status"] == "FINISHED"]
-    live_now = [m for m in matches if m["status"] == "LIVE"]
-    scheduled = [m for m in matches if m["status"] == "SCHEDULED"]
     total_goals = sum(
         (m.get("home_score") or 0) + (m.get("away_score") or 0) for m in finished
     )
@@ -297,11 +382,10 @@ def update_stats_bar(_):
             stat_pill("Total Matches", len(matches)),
             stat_pill("Played", len(finished)),
             stat_pill(
-                "Live Now",
-                len(live_now),
-                color=COLORS["live_red"] if live_now else None,
+                "Champion",
+                f"{get_flag(CHAMPION_TEAM)} {CHAMPION_TEAM}",
+                color=COLORS["gold"],
             ),
-            stat_pill("Upcoming", len(scheduled)),
             stat_pill("Total Goals", total_goals),
             stat_pill("Avg Goals/Match", avg_goals),
             html.Div(
@@ -324,223 +408,90 @@ def update_stats_bar(_):
     )
 
 
-@app.callback(
-    Output("today-matches", "children"), Input("live-interval", "n_intervals")
-)
-def update_today(_):
-    ensure_fresh()
-    live_now = get_matches(status="LIVE")
-    today = get_today_matches()
-    seen = {m["id"] for m in live_now}
-    all_today = live_now + [m for m in today if m["id"] not in seen]
-    if not all_today:
-        # No fixtures today — skip this section entirely rather than
-        # re-rendering "Recent Results" here too (that already has its own
-        # dedicated section right below, so showing it twice was the bug).
-        return html.Div(
-            [
-                section_header("Today's Matches", "No matches scheduled today"),
-                html.Div(
-                    [
-                        html.Div(
-                            "⚽",
-                            style={
-                                "fontSize": "36px",
-                                "textAlign": "center",
-                                "marginBottom": "8px",
-                                "opacity": "0.6",
-                            },
-                        ),
-                        html.Div(
-                            "No matches today — check Recent Results or Coming Up",
-                            style={
-                                "fontSize": "13px",
-                                "color": COLORS["text_secondary"],
-                                "textAlign": "center",
-                            },
-                        ),
-                    ],
-                    style={"padding": "24px 20px"},
-                ),
-            ]
-        )
-    return _grouped_matches(
-        all_today,
-        "Today's Matches",
-        f"{len(all_today)} match{'es' if len(all_today)!=1 else ''} today",
+def _match_buzz_score(m):
+    """
+    Heuristic "how memorable was this match" score, built entirely from
+    real match data — there's no social-media-buzz data source to draw
+    from, so this is a transparent, explainable stand-in: high-scoring
+    games, big upsets, and knockout-stage matches score higher. It's
+    deliberately simple and inspectable, not a claim to know what fans
+    online actually talked about most.
+    """
+    hs, as_ = m.get("home_score"), m.get("away_score")
+    if hs is None or as_ is None:
+        return -1
+    goals = hs + as_
+    home, away = m.get("home_team", ""), m.get("away_team", "")
+    h_rank, a_rank = FIFA_RANKINGS.get(home, 60), FIFA_RANKINGS.get(away, 60)
+    if hs > as_:
+        winner_rank, loser_rank = h_rank, a_rank
+    elif as_ > hs:
+        winner_rank, loser_rank = a_rank, h_rank
+    else:
+        winner_rank = loser_rank = None
+    upset_gap = max(0, winner_rank - loser_rank) if winner_rank is not None else 0
+    round_weight = {"Final": 40, "SF": 28, "QF": 18, "R16": 10, "R32": 4}.get(
+        normalize_round(m.get("round", "")) or "", 0
     )
+    margin = abs(hs - as_)
+    close_high_scoring_bonus = 8 if margin <= 1 and goals >= 3 else 0
+    return goals * 4 + upset_gap * 1.5 + round_weight + close_high_scoring_bonus
 
 
-def _grouped_matches(matches, title, subtitle, reverse_dates=False):
-    """Group matches by date with styled date headers."""
-    by_date = defaultdict(list)
-    for m in matches:
-        by_date[m.get("date", "")].append(m)
+def _top_moments(n=9):
+    """Ranked list of the tournament's most memorable finished matches.
+    FEATURED_MATCH_IDS (see top of file) always come first if set; the rest
+    are ranked by _match_buzz_score."""
+    matches = get_cache().get("matches", [])
+    finished = [
+        m
+        for m in matches
+        if m.get("status") == "FINISHED" and m.get("home_score") is not None
+    ]
+    featured = [m for m in finished if m.get("id") in FEATURED_MATCH_IDS]
+    rest = [m for m in finished if m.get("id") not in FEATURED_MATCH_IDS]
+    rest.sort(key=_match_buzz_score, reverse=True)
+    return (featured + rest)[:n]
 
-    date_keys = sorted(by_date.keys(), reverse=reverse_dates)
-    date_groups = []
-    for date_key in date_keys:
-        day_matches = by_date[date_key]
-        try:
-            label = (
-                datetime.strptime(date_key, "%Y-%m-%d").strftime("%A, %B %d").upper()
-            )
-        except:
-            label = date_key.upper()
 
-        date_groups.append(
+@app.callback(Output("top-moments", "children"), Input("live-interval", "n_intervals"))
+def update_top_moments(_):
+    ensure_fresh()
+    moments = _top_moments(9)
+    if not moments:
+        return html.Div()
+
+    cards = []
+    for i, m in enumerate(moments, 1):
+        badge = "🔥 " if i <= 3 else ""
+        cards.append(
             html.Div(
                 [
                     html.Div(
-                        [
-                            html.Span(
-                                "•",
-                                style={
-                                    "color": COLORS["accent"],
-                                    "fontSize": "16px",
-                                    "fontWeight": "900",
-                                    "marginRight": "8px",
-                                },
+                        f"{badge}#{i}",
+                        style={
+                            "fontSize": "11px",
+                            "fontWeight": "800",
+                            "color": (
+                                COLORS["gold"] if i <= 3 else COLORS["text_secondary"]
                             ),
-                            html.Span(label, className="match-date-label"),
-                            html.Span(
-                                f"{len(day_matches)} match{'es' if len(day_matches)!=1 else ''}",
-                                className="match-date-count",
-                            ),
-                        ],
-                        className="match-date-header",
+                            "marginBottom": "4px",
+                            "paddingLeft": "4px",
+                        },
                     ),
-                    html.Div(
-                        [match_scorecard(m) for m in day_matches],
-                        className="match-date-grid",
-                    ),
-                ],
-                className="match-date-group",
+                    match_scorecard(m),
+                ]
             )
         )
-
-    return html.Div([section_header(title, subtitle)] + date_groups)
-
-
-def _grouped_matches_desc(matches, title, subtitle):
-    """Same as _grouped_matches but newest date first (for Recent Results)."""
-    return _grouped_matches(matches, title, subtitle, reverse_dates=True)
-
-
-@app.callback(
-    Output("recent-matches", "children"), Input("live-interval", "n_intervals")
-)
-def update_recent(_):
-    ensure_fresh()
-    from datetime import datetime, timezone, timedelta
-
-    all_recent = get_recent_matches(50)
-    if not all_recent:
-        return html.Div()
-    # Keep only matches from the last 3 days — no fallback to older matches,
-    # since silently showing e.g. a 10-day-old result under a "Last 3 days"
-    # label is exactly the kind of mislabeling that caused confusion before.
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
-    recent = [m for m in all_recent if m.get("date", "") >= cutoff]
-    if not recent:
-        return html.Div(
-            [
-                section_header("Recent Results", "Last 3 days of results"),
-                html.Div(
-                    "No completed matches in the last 3 days",
-                    style={"color": COLORS["text_secondary"], "padding": "20px"},
-                ),
-            ]
-        )
-    return _grouped_matches_desc(recent, "Recent Results", "Last 3 days of results")
-
-
-@app.callback(
-    Output("upcoming-matches", "children"), Input("live-interval", "n_intervals")
-)
-def update_upcoming(_):
-    ensure_fresh()
-    upcoming = get_upcoming_matches(8)
-    if not upcoming:
-        return html.Div(
-            [
-                section_header(
-                    "Coming Up", "Next fixtures", accent_color=COLORS["accent2"]
-                ),
-                html.Div(
-                    "All matches completed",
-                    style={"color": COLORS["text_secondary"], "padding": "20px"},
-                ),
-            ]
-        )
-
-    cards = []
-    for i, m in enumerate(upcoming):
-        cards.append(match_scorecard(m))
-        if i == 0:
-            cards.append(_build_ai_preview(m))
-    return html.Div(
-        [section_header("Coming Up", "Next fixtures", accent_color=COLORS["accent2"])]
-        + cards
-    )
-
-
-def _build_ai_preview(match):
-    from data.ai_insights import generate_match_preview, ai_enabled
-    from data.fetcher import FIFA_RANKINGS, get_cache
-
-    home, away = match["home_team"], match["away_team"]
-    h_rank = FIFA_RANKINGS.get(home, 60)
-    a_rank = FIFA_RANKINGS.get(away, 60)
-    gap = abs(h_rank - a_rank)
-    shock = min(92, max(8, 8 + gap * 1.8))
-    if gap <= 5:
-        shock = max(20, 35 + (5 - gap) * 3)
-
-    group_table = get_cache().get("groups", {})
-
-    def form(team):
-        for g in group_table.values():
-            if team in g:
-                return g[team]
-        return {"pts": 0, "gf": 0, "ga": 0}
-
-    text = generate_match_preview(
-        home, away, h_rank, a_rank, form(home), form(away), shock, match_id=match["id"]
-    )
-    badge = "🤖 AI Preview" if ai_enabled() else "📋 Preview"
-
     return html.Div(
         [
-            html.Div(
-                badge,
-                style={
-                    "fontSize": "10px",
-                    "fontWeight": "700",
-                    "color": COLORS["accent2"],
-                    "textTransform": "uppercase",
-                    "letterSpacing": "0.08em",
-                    "marginBottom": "6px",
-                },
+            section_header(
+                "🎬 Top Moments",
+                "The tournament's most memorable matches",
+                accent_color=COLORS["gold"],
             ),
-            html.Div(
-                text,
-                style={
-                    "fontSize": "13px",
-                    "color": COLORS["text_secondary"],
-                    "lineHeight": "1.6",
-                },
-            ),
-        ],
-        className="glow-card",
-        style={
-            "backgroundColor": COLORS["bg_card2"],
-            "border": f"1px solid {COLORS['border']}",
-            "borderRadius": "10px",
-            "padding": "14px 16px",
-            "marginBottom": "16px",
-            "marginTop": "-4px",
-        },
+            html.Div(cards, className="match-date-grid"),
+        ]
     )
 
 

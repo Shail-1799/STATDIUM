@@ -1938,3 +1938,69 @@ details>summary:hover {
   color: var(--text-secondary, #9a9ab0);
   text-align: center;
 }
+
+/* ── Champion Banner — premium hover effect ──────────────────────────── */
+.champion-banner {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.champion-banner:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 16px 48px rgba(255, 215, 0, 0.35);
+  border-color: rgba(255, 215, 0, 0.9) !important;
+}
+
+/* Diagonal gold shimmer that sweeps across on hover */
+.champion-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.16) 45%,
+      rgba(255, 215, 0, 0.32) 50%,
+      rgba(255, 255, 255, 0.16) 55%,
+      transparent 100%);
+  transform: skewX(-20deg);
+  transition: left 0.9s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.champion-banner:hover::before {
+  left: 130%;
+}
+
+/* Twinkling sparkles, scattered around the card — hidden until hover */
+.champion-sparkle {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.3) rotate(0deg);
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.3s ease;
+}
+
+.champion-banner:hover .champion-sparkle {
+  animation: champion-twinkle 1.6s ease-in-out infinite;
+}
+
+@keyframes champion-twinkle {
+
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(20deg);
+  }
+}

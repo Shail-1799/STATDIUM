@@ -97,8 +97,9 @@ def _champion_banner():
 
     content = [
         html.Div("🏆", style={"fontSize": "56px", "textAlign": "center"}),
+        html.Span(get_flag_img(CHAMPION_TEAM, width=48), style={"display": "block", "textAlign": "center"}),
         html.Div(
-            f"{get_flag(CHAMPION_TEAM)} {CHAMPION_TEAM}",
+            f"{CHAMPION_TEAM}",
             style={
                 "fontSize": "28px",
                 "fontWeight": "900",

@@ -204,10 +204,43 @@ GUIDE = page_guide(
 )
 
 
+PLOTLY_ANNOUNCEMENT_URL = "https://www.linkedin.com/posts/plotly_plotlycommunity-plotlydash-plotlychallenge-activity-7485000762293465088-GJsu"
+
+def _winner_banner():
+    """
+    Site win announcement — deliberately impossible to miss: sticky to the
+    top of the page as visitors scroll, high-contrast animated gradient,
+    no dismiss button. A real, one-time achievement worth surfacing loudly.
+    """
+    return html.Div(
+        [
+            html.Span("🏆", style={"fontSize": "20px", "marginRight": "10px"}),
+            html.Span(
+                "WORLD RANK #1 — Plotly Dash App Challenge",
+                style={"fontWeight": "900", "fontSize": "15px", "letterSpacing": "0.02em"},
+            ),
+            html.Span(" · ", style={"opacity": "0.6", "margin": "0 8px"}),
+            html.Span(
+                "STATDIUM ranked #1 worldwide",
+                style={"fontWeight": "500", "fontSize": "13px"},
+            ),
+            html.A(
+                "View the announcement →",
+                href=PLOTLY_ANNOUNCEMENT_URL,
+                target="_blank",
+                style={"marginLeft": "14px", "fontWeight": "800", "fontSize": "13px",
+                       "color": "#000", "textDecoration": "underline", "whiteSpace": "nowrap"},
+            ),
+        ],
+        className="winner-banner",
+    )
+
+
 def layout():
     return html.Div(
         [
             dcc.Interval(id="live-interval", interval=20000, n_intervals=0),
+            _winner_banner(),
             _hero(),
             page_wrapper(
                 [

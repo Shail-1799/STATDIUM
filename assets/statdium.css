@@ -2004,3 +2004,35 @@ details>summary:hover {
     transform: scale(1.15) rotate(20deg);
   }
 }
+
+
+/* ── Winner Announcement Banner — impossible to miss ─────────────────── */
+.winner-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 12px 20px;
+  text-align: center;
+  color: #000;
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700, #FFED4E, #FFD700);
+  background-size: 300% 100%;
+  animation: winner-shimmer 6s ease-in-out infinite;
+  box-shadow: 0 2px 16px rgba(255, 215, 0, 0.4);
+}
+
+@keyframes winner-shimmer {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
